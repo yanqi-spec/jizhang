@@ -1,0 +1,595 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 手机端适配核心meta -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>小七记账 - 手机端</title>
+    <style>
+        /* 全局重置 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            padding-bottom: 80px;
+        }
+
+        /* 头部样式 */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 15px;
+            border-radius: 0 0 20px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 22px;
+            margin-bottom: 10px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+            flex: 1;
+        }
+
+        .stat-item .label {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+
+        .stat-item .value {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .income {
+            color: #4cd964;
+        }
+
+        .expense {
+            color: #ff6b6b;
+        }
+
+        .balance {
+            color: #fff;
+        }
+
+        /* 表单区域 */
+        .form-container {
+            background: white;
+            margin: 15px;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: #666;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .form-control:focus {
+            border-color: #667eea;
+        }
+
+        .type-selector {
+            display: flex;
+            gap: 10px;
+        }
+
+        .type-btn {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .type-btn.active {
+            background-color: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        /* 功能按钮区 */
+        .func-buttons {
+            display: flex;
+            margin: 0 15px 15px;
+            gap: 10px;
+        }
+
+        .func-btn {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 10px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        /* 账单列表 */
+        .list-container {
+            margin: 0 15px;
+        }
+
+        .list-title {
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #333;
+            font-weight: bold;
+        }
+
+        .bill-item {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .bill-left {
+            flex: 1;
+        }
+
+        .bill-type {
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-bottom: 5px;
+        }
+
+        .type-income {
+            background: #e8f5e9;
+            color: #4cd964;
+        }
+
+        .type-expense {
+            background: #ffebee;
+            color: #ff6b6b;
+        }
+
+        .bill-remark {
+            font-size: 15px;
+            color: #333;
+            margin-bottom: 3px;
+        }
+
+        .bill-date {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .bill-amount {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .bill-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-btn {
+            width: 30px;
+            height: 30px;
+            border: none;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .edit-btn {
+            background: #e3f2fd;
+            color: #2196f3;
+        }
+
+        .delete-btn {
+            background: #ffebee;
+            color: #f44336;
+        }
+
+        /* 隐藏的导入文件输入 */
+        #fileInput {
+            display: none;
+        }
+
+        /* 空数据提示 */
+        .empty-tip {
+            text-align: center;
+            padding: 30px;
+            color: #999;
+            font-size: 14px;
+        }
+
+        /* 响应式适配 */
+        @media (max-width: 375px) {
+            .header h1 {
+                font-size: 20px;
+            }
+            .stat-item .value {
+                font-size: 16px;
+            }
+            .bill-amount {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 头部统计区 -->
+    <div class="header">
+        <h1>小七记账</h1>
+        <div class="stats">
+            <div class="stat-item">
+                <div class="label">总收入</div>
+                <div class="value income" id="totalIncome">¥0.00</div>
+            </div>
+            <div class="stat-item">
+                <div class="label">总支出</div>
+                <div class="value expense" id="totalExpense">¥0.00</div>
+            </div>
+            <div class="stat-item">
+                <div class="label">结余</div>
+                <div class="value balance" id="totalBalance">¥0.00</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 记账表单 -->
+    <div class="form-container">
+        <div class="form-group">
+            <label>交易类型</label>
+            <div class="type-selector">
+                <div class="type-btn active" data-type="expense">支出</div>
+                <div class="type-btn" data-type="income">收入</div>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>金额 (元)</label>
+            <input type="number" class="form-control" id="amount" placeholder="请输入金额" step="0.01" min="0.01">
+        </div>
+        <div class="form-group">
+            <label>备注</label>
+            <input type="text" class="form-control" id="remark" placeholder="例如：早餐、工资">
+        </div>
+        <div class="form-group">
+            <label>日期</label>
+            <input type="date" class="form-control" id="date">
+        </div>
+        <button class="btn btn-primary" id="addBill">添加账单</button>
+    </div>
+
+    <!-- 功能按钮（导入/导出） -->
+    <div class="func-buttons">
+        <button class="func-btn" id="importBtn">导入账单</button>
+        <button class="func-btn" id="exportBtn">导出账单</button>
+    </div>
+    <input type="file" id="fileInput" accept=".json">
+
+    <!-- 账单列表 -->
+    <div class="list-container">
+        <div class="list-title">最近账单</div>
+        <div id="billList">
+            <div class="empty-tip">暂无账单，添加你的第一笔记账吧！</div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let bills = JSON.parse(localStorage.getItem('bills')) || [];
+        let editIndex = -1; // 编辑状态的索引，-1表示新增
+
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', function() {
+            // 设置默认日期为今天
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('date').value = today;
+
+            // 绑定事件
+            bindEvents();
+            // 渲染账单列表
+            renderBillList();
+            // 更新统计数据
+            updateStats();
+        });
+
+        // 事件绑定
+        function bindEvents() {
+            // 交易类型选择
+            const typeBtns = document.querySelectorAll('.type-btn');
+            typeBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    typeBtns.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+
+            // 添加/编辑账单
+            document.getElementById('addBill').addEventListener('click', saveBill);
+
+            // 导入账单
+            document.getElementById('importBtn').addEventListener('click', function() {
+                document.getElementById('fileInput').click();
+            });
+            document.getElementById('fileInput').addEventListener('change', importBills);
+
+            // 导出账单
+            document.getElementById('exportBtn').addEventListener('click', exportBills);
+        }
+
+        // 保存账单（新增/编辑）
+        function saveBill() {
+            // 获取表单数据
+            const type = document.querySelector('.type-btn.active').dataset.type;
+            const amount = parseFloat(document.getElementById('amount').value);
+            const remark = document.getElementById('remark').value.trim() || (type === 'income' ? '收入' : '支出');
+            const date = document.getElementById('date').value;
+
+            // 验证
+            if (!amount || amount <= 0) {
+                alert('请输入有效的金额！');
+                return;
+            }
+            if (!date) {
+                alert('请选择日期！');
+                return;
+            }
+
+            const bill = {
+                id: Date.now(), // 用时间戳作为唯一ID
+                type,
+                amount,
+                remark,
+                date
+            };
+
+            if (editIndex === -1) {
+                // 新增
+                bills.unshift(bill); // 新增的放在最前面
+            } else {
+                // 编辑
+                bills[editIndex] = bill;
+                editIndex = -1;
+                document.getElementById('addBill').textContent = '添加账单';
+            }
+
+            // 保存到本地存储
+            localStorage.setItem('bills', JSON.stringify(bills));
+
+            // 重置表单
+            resetForm();
+
+            // 重新渲染
+            renderBillList();
+            updateStats();
+
+            alert(editIndex === -1 ? '账单添加成功！' : '账单编辑成功！');
+        }
+
+        // 重置表单
+        function resetForm() {
+            document.getElementById('amount').value = '';
+            document.getElementById('remark').value = '';
+            document.getElementById('date').value = new Date().toISOString().split('T')[0];
+            // 重置类型为支出
+            document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector('[data-type="expense"]').classList.add('active');
+        }
+
+        // 渲染账单列表
+        function renderBillList() {
+            const billList = document.getElementById('billList');
+            
+            if (bills.length === 0) {
+                billList.innerHTML = '<div class="empty-tip">暂无账单，添加你的第一笔记账吧！</div>';
+                return;
+            }
+
+            let html = '';
+            bills.forEach((bill, index) => {
+                html += `
+                    <div class="bill-item">
+                        <div class="bill-left">
+                            <div class="bill-type ${bill.type === 'income' ? 'type-income' : 'type-expense'}">
+                                ${bill.type === 'income' ? '收入' : '支出'}
+                            </div>
+                            <div class="bill-remark">${bill.remark}</div>
+                            <div class="bill-date">${formatDate(bill.date)}</div>
+                        </div>
+                        <div class="bill-amount ${bill.type === 'income' ? 'income' : 'expense'}">
+                            ¥${bill.amount.toFixed(2)}
+                        </div>
+                        <div class="bill-actions">
+                            <button class="action-btn edit-btn" onclick="editBill(${index})">✏️</button>
+                            <button class="action-btn delete-btn" onclick="deleteBill(${index})">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            billList.innerHTML = html;
+        }
+
+        // 编辑账单
+        function editBill(index) {
+            const bill = bills[index];
+            editIndex = index;
+
+            // 填充表单
+            document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector(`[data-type="${bill.type}"]`).classList.add('active');
+            document.getElementById('amount').value = bill.amount;
+            document.getElementById('remark').value = bill.remark;
+            document.getElementById('date').value = bill.date;
+
+            // 修改按钮文字
+            document.getElementById('addBill').textContent = '保存修改';
+
+            // 滚动到表单顶部
+            window.scrollTo(0, 0);
+        }
+
+        // 删除账单
+        function deleteBill(index) {
+            if (confirm('确定要删除这条账单吗？')) {
+                bills.splice(index, 1);
+                localStorage.setItem('bills', JSON.stringify(bills));
+                renderBillList();
+                updateStats();
+                alert('账单删除成功！');
+            }
+        }
+
+        // 更新统计数据
+        function updateStats() {
+            let totalIncome = 0;
+            let totalExpense = 0;
+
+            bills.forEach(bill => {
+                if (bill.type === 'income') {
+                    totalIncome += bill.amount;
+                } else {
+                    totalExpense += bill.amount;
+                }
+            });
+
+            const balance = totalIncome - totalExpense;
+
+            // 更新页面显示
+            document.getElementById('totalIncome').textContent = `¥${totalIncome.toFixed(2)}`;
+            document.getElementById('totalExpense').textContent = `¥${totalExpense.toFixed(2)}`;
+            document.getElementById('totalBalance').textContent = `¥${balance.toFixed(2)}`;
+        }
+
+        // 导入账单
+        function importBills(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // 验证文件类型
+            if (file.type !== 'application/json' && !file.name.endsWith('.json')) {
+                alert('请选择JSON格式的账单文件！');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedBills = JSON.parse(e.target.result);
+                    // 验证导入的数据格式
+                    if (!Array.isArray(importedBills) || importedBills.some(b => !b.type || !b.amount || !b.date)) {
+                        alert('账单文件格式不正确！');
+                        return;
+                    }
+
+                    // 合并账单（去重，根据ID）
+                    const existingIds = bills.map(b => b.id);
+                    const newBills = importedBills.filter(b => !existingIds.includes(b.id));
+                    bills = [...bills, ...newBills];
+
+                    // 保存并更新
+                    localStorage.setItem('bills', JSON.stringify(bills));
+                    renderBillList();
+                    updateStats();
+
+                    alert(`成功导入 ${newBills.length} 条账单！`);
+                    // 清空文件选择
+                    document.getElementById('fileInput').value = '';
+                } catch (error) {
+                    alert('导入失败：' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // 导出账单
+        function exportBills() {
+            if (bills.length === 0) {
+                alert('暂无账单可导出！');
+                return;
+            }
+
+            // 转为JSON字符串
+            const jsonStr = JSON.stringify(bills, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+
+            // 创建下载链接
+            const a = document.createElement('a');
+            const fileName = `记账数据_${new Date().toLocaleDateString().replace(/\//g, '-')}.json`;
+            a.href = URL.createObjectURL(blob);
+            a.download = fileName;
+            a.click();
+
+            // 释放URL
+            URL.revokeObjectURL(a.href);
+            alert('账单导出成功！');
+        }
+
+        // 格式化日期（YYYY-MM-DD → 年-月-日）
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+        }
+    </script>
+</body>
+</html>
