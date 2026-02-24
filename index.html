@@ -2,7 +2,6 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <!-- 手机端适配核心meta -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>小七记账 - 手机端</title>
     <style>
@@ -38,11 +37,14 @@
             display: flex;
             justify-content: space-between;
             margin-top: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
         .stat-item {
             text-align: center;
             flex: 1;
+            min-width: 80px;
         }
 
         .stat-item .label {
@@ -66,6 +68,15 @@
 
         .balance {
             color: #fff;
+        }
+
+        /* 今日收支统计 */
+        .today-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255,255,255,0.2);
         }
 
         /* 表单区域 */
@@ -159,6 +170,39 @@
             border-radius: 10px;
             font-size: 14px;
             cursor: pointer;
+        }
+
+        /* 日期查询区域 */
+        .date-search {
+            background: white;
+            margin: 0 15px 15px;
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .date-search input {
+            flex: 1;
+            padding: 10px;
+        }
+
+        .date-search button {
+            padding: 10px 15px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .search-result {
+            text-align: center;
+            padding: 10px;
+            font-size: 15px;
+            color: #666;
         }
 
         /* 账单列表 */
@@ -293,6 +337,24 @@
                 <div class="value balance" id="totalBalance">¥0.00</div>
             </div>
         </div>
+        <!-- 新增今日收支统计 -->
+        <div class="today-stats">
+            <div class="stat-item">
+                <div class="label">今日收入</div>
+                <div class="value income" id="todayIncome">¥0.00</div>
+            </div>
+            <div class="stat-item">
+                <div class="label">今日支出</div>
+                <div class="value expense" id="todayExpense">¥0.00</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 日期查询区域 -->
+    <div class="date-search">
+        <input type="date" class="form-control" id="searchDate" placeholder="选择查询日期">
+        <button id="searchBtn">查询</button>
+        <div id="searchResult" class="search-result"></div>
     </div>
 
     <!-- 记账表单 -->
@@ -319,10 +381,11 @@
         <button class="btn btn-primary" id="addBill">添加账单</button>
     </div>
 
-    <!-- 功能按钮（导入/导出） -->
+    <!-- 功能按钮区（新增分享按钮） -->
     <div class="func-buttons">
         <button class="func-btn" id="importBtn">导入账单</button>
         <button class="func-btn" id="exportBtn">导出账单</button>
+        <button class="func-btn" id="shareBtn">分享账单</button>
     </div>
     <input type="file" id="fileInput" accept=".json">
 
@@ -344,13 +407,16 @@
             // 设置默认日期为今天
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('date').value = today;
+            document.getElementById('searchDate').value = today;
 
             // 绑定事件
             bindEvents();
             // 渲染账单列表
             renderBillList();
-            // 更新统计数据
+            // 更新统计数据（包含今日收支）
             updateStats();
+            // 初始化当日查询结果
+            searchByDate(today);
         });
 
         // 事件绑定
@@ -375,6 +441,19 @@
 
             // 导出账单
             document.getElementById('exportBtn').addEventListener('click', exportBills);
+
+            // 新增：分享账单
+            document.getElementById('shareBtn').addEventListener('click', shareBills);
+
+            // 新增：日期查询
+            document.getElementById('searchBtn').addEventListener('click', function() {
+                const searchDate = document.getElementById('searchDate').value;
+                if (!searchDate) {
+                    alert('请选择要查询的日期！');
+                    return;
+                }
+                searchByDate(searchDate);
+            });
         }
 
         // 保存账单（新增/编辑）
@@ -422,6 +501,11 @@
             // 重新渲染
             renderBillList();
             updateStats();
+            // 更新当日查询结果
+            const today = new Date().toISOString().split('T')[0];
+            if (document.getElementById('searchDate').value === today) {
+                searchByDate(today);
+            }
 
             alert(editIndex === -1 ? '账单添加成功！' : '账单编辑成功！');
         }
@@ -437,16 +521,20 @@
         }
 
         // 渲染账单列表
-        function renderBillList() {
+        function renderBillList(filteredBills = null) {
             const billList = document.getElementById('billList');
+            const displayBills = filteredBills || bills;
             
-            if (bills.length === 0) {
-                billList.innerHTML = '<div class="empty-tip">暂无账单，添加你的第一笔记账吧！</div>';
+            if (displayBills.length === 0) {
+                billList.innerHTML = '<div class="empty-tip">暂无账单数据！</div>';
                 return;
             }
 
             let html = '';
-            bills.forEach((bill, index) => {
+            displayBills.forEach((bill, index) => {
+                // 如果是筛选后的列表，需要找到原数组索引
+                const originalIndex = filteredBills ? bills.findIndex(b => b.id === bill.id) : index;
+                
                 html += `
                     <div class="bill-item">
                         <div class="bill-left">
@@ -460,8 +548,8 @@
                             ¥${bill.amount.toFixed(2)}
                         </div>
                         <div class="bill-actions">
-                            <button class="action-btn edit-btn" onclick="editBill(${index})">✏️</button>
-                            <button class="action-btn delete-btn" onclick="deleteBill(${index})">🗑️</button>
+                            <button class="action-btn edit-btn" onclick="editBill(${originalIndex})">✏</button>
+                            <button class="action-btn delete-btn" onclick="deleteBill(${originalIndex})">🗑</button>
                         </div>
                     </div>
                 `;
@@ -496,20 +584,39 @@
                 localStorage.setItem('bills', JSON.stringify(bills));
                 renderBillList();
                 updateStats();
+                // 更新日期查询结果
+                const searchDate = document.getElementById('searchDate').value;
+                if (searchDate) {
+                    searchByDate(searchDate);
+                }
                 alert('账单删除成功！');
             }
         }
 
-        // 更新统计数据
+        // 更新统计数据（新增今日收支）
         function updateStats() {
             let totalIncome = 0;
             let totalExpense = 0;
+            let todayIncome = 0;
+            let todayExpense = 0;
+
+            const today = new Date().toISOString().split('T')[0];
 
             bills.forEach(bill => {
+                // 总收支统计
                 if (bill.type === 'income') {
                     totalIncome += bill.amount;
                 } else {
                     totalExpense += bill.amount;
+                }
+
+                // 今日收支统计
+                if (bill.date === today) {
+                    if (bill.type === 'income') {
+                        todayIncome += bill.amount;
+                    } else {
+                        todayExpense += bill.amount;
+                    }
                 }
             });
 
@@ -519,6 +626,9 @@
             document.getElementById('totalIncome').textContent = `¥${totalIncome.toFixed(2)}`;
             document.getElementById('totalExpense').textContent = `¥${totalExpense.toFixed(2)}`;
             document.getElementById('totalBalance').textContent = `¥${balance.toFixed(2)}`;
+            // 新增今日收支显示
+            document.getElementById('todayIncome').textContent = `¥${todayIncome.toFixed(2)}`;
+            document.getElementById('todayExpense').textContent = `¥${todayExpense.toFixed(2)}`;
         }
 
         // 导入账单
@@ -551,6 +661,11 @@
                     localStorage.setItem('bills', JSON.stringify(bills));
                     renderBillList();
                     updateStats();
+                    // 更新日期查询结果
+                    const searchDate = document.getElementById('searchDate').value;
+                    if (searchDate) {
+                        searchByDate(searchDate);
+                    }
 
                     alert(`成功导入 ${newBills.length} 条账单！`);
                     // 清空文件选择
@@ -583,6 +698,82 @@
             // 释放URL
             URL.revokeObjectURL(a.href);
             alert('账单导出成功！');
+        }
+
+        // 新增：分享账单功能
+        function shareBills() {
+            if (bills.length === 0) {
+                alert('暂无账单可分享！');
+                return;
+            }
+
+            // 弹出同步确认框
+            const isSync = confirm('分享账单时是否同步当前所有账单数据？\n\n确认后将生成账单文件并唤起分享功能');
+            
+            if (isSync) {
+                // 生成分享用的JSON文件
+                const jsonStr = JSON.stringify(bills, null, 2);
+                const blob = new Blob([jsonStr], { type: 'application/json' });
+                const fileUrl = URL.createObjectURL(blob);
+
+                // 兼容Web Share API（移动端主流浏览器支持）
+                if (navigator.share) {
+                    // 准备分享内容
+                    const shareData = {
+                        title: '小七记账 - 账单数据',
+                        text: `小七记账账单数据（共${bills.length}条），导出时间：${new Date().toLocaleString()}`,
+                        files: [new File([blob], `小七记账_${new Date().toLocaleDateString().replace(/\//g, '-')}.json`, { type: 'application/json' })]
+                    };
+
+                    // 调用系统分享功能
+                    navigator.share(shareData)
+                        .then(() => alert('分享发起成功！'))
+                        .catch((error) => {
+                            alert(`分享取消或失败：${error.message}`);
+                            // 备用方案：直接下载文件
+                            const a = document.createElement('a');
+                            a.href = fileUrl;
+                            a.download = `小七记账_${new Date().toLocaleDateString().replace(/\//g, '-')}.json`;
+                            a.click();
+                        });
+                } else {
+                    // 不支持Web Share API时，直接下载文件并提示
+                    alert('你的浏览器不支持分享功能，已为你生成账单文件，请手动分享！');
+                    const a = document.createElement('a');
+                    a.href = fileUrl;
+                    a.download = `小七记账_${new Date().toLocaleDateString().replace(/\//g, '-')}.json`;
+                    a.click();
+                }
+
+                // 释放URL
+                setTimeout(() => URL.revokeObjectURL(fileUrl), 1000);
+            }
+        }
+
+        // 新增：按日期查询收支
+        function searchByDate(searchDate) {
+            let dayIncome = 0;
+            let dayExpense = 0;
+            const filteredBills = [];
+
+            // 筛选指定日期的账单并统计
+            bills.forEach(bill => {
+                if (bill.date === searchDate) {
+                    filteredBills.push(bill);
+                    if (bill.type === 'income') {
+                        dayIncome += bill.amount;
+                    } else {
+                        dayExpense += bill.amount;
+                    }
+                }
+            });
+
+            // 更新查询结果显示
+            const resultText = `${formatDate(searchDate)}：收入 ¥${dayIncome.toFixed(2)}，支出 ¥${dayExpense.toFixed(2)}，结余 ¥${(dayIncome - dayExpense).toFixed(2)}`;
+            document.getElementById('searchResult').textContent = resultText;
+
+            // 渲染筛选后的账单列表
+            renderBillList(filteredBills);
         }
 
         // 格式化日期（YYYY-MM-DD → 年-月-日）
