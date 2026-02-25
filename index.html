@@ -52,20 +52,27 @@
             border-radius: 15px;
             width: 85%;
             max-width: 350px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
         }
         .modal-title {
             font-size: 18px;
             font-weight: bold;
             margin-bottom: 15px;
             text-align: center;
+            color: #333;
         }
         .modal-input {
             width: 100%;
-            padding: 12px;
+            padding: 12px 15px;
             border: 1px solid #eee;
             border-radius: 10px;
             margin-bottom: 15px;
             font-size: 16px;
+            transition: border 0.3s;
+        }
+        .modal-input:focus {
+            outline: none;
+            border-color: #667eea;
         }
         .modal-btn-group {
             display: flex;
@@ -73,18 +80,28 @@
         }
         .modal-btn {
             flex: 1;
-            padding: 10px;
+            padding: 12px;
             border: none;
             border-radius: 10px;
             font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
         }
         .modal-btn.cancel {
-            background: #eee;
+            background: #f5f7fa;
             color: #666;
+        }
+        .modal-btn.cancel:hover {
+            background: #eee;
         }
         .modal-btn.confirm {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
+        }
+        .modal-btn.confirm:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
         }
 
         /* 每日总结弹窗 */
@@ -106,6 +123,7 @@
             border-radius: 15px;
             width: 85%;
             max-width: 350px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
         }
         .summary-title {
             font-size: 20px;
@@ -123,12 +141,13 @@
         .summary-item {
             display: flex;
             justify-content: space-between;
-            padding: 8px 0;
+            padding: 10px 0;
             font-size: 16px;
             border-bottom: 1px solid #f5f5f5;
         }
         .summary-label {
             color: #666;
+            font-weight: 500;
         }
         .summary-income {
             color: #4cd964;
@@ -140,24 +159,33 @@
         }
         .summary-balance {
             font-weight: bold;
+            color: #333;
         }
         .summary-tip {
             margin-top: 15px;
-            padding: 10px;
+            padding: 12px;
             background: #f5f7fa;
             border-radius: 10px;
             font-size: 14px;
             line-height: 1.5;
+            color: #666;
         }
         .summary-close {
             width: 100%;
             padding: 12px;
             border: none;
             border-radius: 10px;
-            background: #667eea;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             font-size: 16px;
+            font-weight: 500;
             margin-top: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .summary-close:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
         }
 
         .header {
@@ -165,7 +193,7 @@
             color: white;
             padding: 20px 15px;
             border-radius: 0 0 20px 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             position: relative;
         }
         .nickname-edit {
@@ -175,6 +203,17 @@
             font-size: 16px;
             cursor: pointer;
             opacity: 0.8;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        .nickname-edit:hover {
+            background: rgba(255,255,255,0.3);
         }
         .welcome-text {
             font-size: 14px;
@@ -184,6 +223,7 @@
         .header h1 {
             font-size: 22px;
             margin-bottom: 10px;
+            font-weight: 600;
         }
 
         .stats {
@@ -223,69 +263,169 @@
         .streak-card {
             background: white;
             margin: 15px;
-            padding: 15px;
+            padding: 20px 15px;
             border-radius: 15px;
             text-align: center;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: transform 0.3s;
+        }
+        .streak-card:hover {
+            transform: translateY(-3px);
         }
         .streak-title {
             font-size: 14px;
             color: #666;
+            margin-bottom: 8px;
         }
         .streak-day {
-            font-size: 30px;
+            font-size: 32px;
             font-weight: bold;
             color: #667eea;
             margin: 5px 0;
+        }
+        .streak-desc {
+            font-size: 12px;
+            color: #999;
         }
 
         /* 月度总结 */
         .month-card {
             background: white;
             margin: 15px;
-            padding: 15px;
+            padding: 20px 15px;
             border-radius: 15px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: transform 0.3s;
+        }
+        .month-card:hover {
+            transform: translateY(-3px);
         }
         .month-title {
             font-weight: bold;
-            margin-bottom: 8px;
+            font-size: 16px;
+            margin-bottom: 12px;
+            color: #333;
         }
         .month-row {
             display: flex;
             justify-content: space-between;
-            padding: 5px 0;
-            font-size: 14px;
+            padding: 8px 0;
+            font-size: 15px;
+            border-bottom: 1px solid #f5f5f5;
+        }
+        .month-row:last-child {
+            border-bottom: none;
         }
 
         /* 快捷分类 */
         .quick-category {
             display: flex;
-            gap: 8px;
+            gap: 10px;
             margin: 0 15px 15px;
             overflow-x: auto;
-            padding-bottom: 5px;
+            padding-bottom: 8px;
+            padding-top: 5px;
+        }
+        .quick-category::-webkit-scrollbar {
+            height: 4px;
+        }
+        .quick-category::-webkit-scrollbar-thumb {
+            background: #eee;
+            border-radius: 2px;
         }
         .quick-btn {
-            padding: 8px 12px;
+            padding: 10px 16px;
             background: white;
             border: 1px solid #eee;
             border-radius: 20px;
-            font-size: 13px;
+            font-size: 14px;
             white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
-        .quick-btn.active {
-            background: #667eea;
+        .quick-btn:hover, .quick-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            border-color: #667eea;
+            border-color: transparent;
+            transform: translateY(-2px);
+        }
+
+        /* 日期查询/今日总结卡片（重点优化） */
+        .date-search-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0 15px 15px;
+            padding: 16px;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            color: white;
+            display: flex;
+            align-items: center;
+        }
+        .search-left {
+            margin-right: 16px;
+        }
+        .search-btn {
+            width: 48px;
+            height: 90px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 24px;
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .search-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+        .search-right {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .search-date-input {
+            width: 100%;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        .search-date-input::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+        }
+        .search-result {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.4;
         }
 
         .tip-container {
             background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             margin: 15px;
-            padding: 15px;
+            padding: 18px 15px;
             border-radius: 15px;
             color: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .tip-title {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        .tip-content {
+            font-size: 14px;
+            line-height: 1.5;
+            opacity: 0.9;
         }
 
         .form-container {
@@ -295,19 +435,31 @@
             border-radius: 15px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
-        .form-group { margin-bottom: 15px; }
+        .form-group { 
+            margin-bottom: 18px; 
+        }
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
         .form-group label {
             font-size: 14px;
             margin-bottom: 8px;
             display: block;
             color: #666;
+            font-weight: 500;
         }
         .form-control {
             width: 100%;
-            padding: 12px 15px;
+            padding: 14px 15px;
             border: 1px solid #e0e0e0;
             border-radius: 10px;
             font-size: 16px;
+            transition: border 0.3s;
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
         }
         .type-selector {
             display: flex;
@@ -315,15 +467,18 @@
         }
         .type-btn {
             flex: 1;
-            padding: 12px;
+            padding: 14px;
             text-align: center;
             border: 1px solid #e0e0e0;
             border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
         }
         .type-btn.active {
-            background: #667eea;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            border-color: #667eea;
+            border-color: transparent;
         }
         .btn {
             width: 100%;
@@ -334,6 +489,12 @@
             font-weight: bold;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
         }
 
         .func-buttons {
@@ -343,40 +504,34 @@
         }
         .func-btn {
             flex: 1;
-            padding: 10px;
+            padding: 12px;
             border: 1px solid #667eea;
             background: white;
             color: #667eea;
             border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+            font-size: 14px;
         }
-
-        .date-search {
-            background: white;
-            margin: 0 15px 15px;
-            padding: 15px;
-            border-radius: 15px;
-            display: flex;
-            gap: 10px;
-        }
-        .date-search input { flex:1; padding:10px; }
-        .date-search button {
-            padding: 10px 15px;
+        .func-btn:hover {
             background: #667eea;
             color: white;
-            border: none;
-            border-radius: 10px;
         }
 
-        .list-container { margin: 0 15px; }
+        .list-container { 
+            margin: 0 15px; 
+        }
         .list-title {
             font-size: 16px;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
             font-weight: bold;
+            color: #333;
         }
         .bill-item {
             background: white;
-            padding: 15px;
-            border-radius: 10px;
+            padding: 18px 15px;
+            border-radius: 12px;
             margin-bottom: 10px;
             box-shadow: 0 1px 5px rgba(0,0,0,0.05);
             display: flex;
@@ -384,11 +539,69 @@
             align-items: center;
             transition: all 0.3s;
         }
-        .bill-item:hover { transform: translateY(-3px); }
-        .empty-tip { text-align: center; padding:30px; color:#999; }
+        .bill-item:hover { 
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .bill-info {
+            flex: 1;
+        }
+        .bill-remark {
+            font-size: 15px;
+            color: #333;
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+        .bill-date {
+            font-size: 12px;
+            color: #999;
+        }
+        .bill-amount {
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .bill-actions {
+            display:flex;
+            gap:8px;
+            margin-left: 10px;
+        }
+        .bill-action-btn {
+            width:28px;
+            height:28px;
+            border:none;
+            border-radius:50%;
+            cursor:pointer;
+            transition:all 0.3s;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-size:12px;
+        }
+        .edit-btn {
+            background:#e3f2fd;
+            color:#2196f3;
+        }
+        .delete-btn {
+            background:#ffebee;
+            color:#f44336;
+        }
+        .bill-action-btn:hover {
+            transform:scale(1.1);
+        }
+        .empty-tip { 
+            text-align: center; 
+            padding:30px; 
+            color:#999; 
+            font-size:14px;
+        }
 
         /* 隐藏元素 */
-        .hidden { display: none !important; }
+        .hidden { 
+            display: none !important; 
+        }
+        #fileInput {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -464,7 +677,7 @@
 <div class="streak-card">
     <div class="streak-title">📅 记账连续天数</div>
     <div class="streak-day" id="streakDay">0</div>
-    <div style="font-size:12px;color:#999">坚持记账，越记越有钱～</div>
+    <div class="streak-desc">坚持记账，越记越有钱～</div>
 </div>
 
 <!-- 月度总结 -->
@@ -489,10 +702,15 @@
     <div class="tip-content" id="tipContent"></div>
 </div>
 
-<div class="date-search">
-    <input type="date" class="form-control" id="searchDate">
-    <button id="searchBtn">查询</button>
-    <div id="searchResult" style="text-align:center;color:#666"></div>
+<!-- 日期查询卡片（重点优化） -->
+<div class="date-search-card">
+    <div class="search-left">
+        <button class="search-btn" id="searchBtn">查询</button>
+    </div>
+    <div class="search-right">
+        <input type="date" class="search-date-input form-control" id="searchDate">
+        <div class="search-result" id="searchResult"></div>
+    </div>
 </div>
 
 <!-- 快捷分类 -->
@@ -729,6 +947,8 @@ function bindAll(){
     // 快捷分类点击
     document.querySelectorAll('.quick-btn').forEach(b=>{
         b.onclick = ()=>{
+            document.querySelectorAll('.quick-btn').forEach(x=>x.classList.remove('active'));
+            b.classList.add('active');
             document.getElementById('remark').value = b.dataset.name;
         }
     });
@@ -808,6 +1028,9 @@ function resetForm(){
     // 重置交易类型为支出
     document.querySelectorAll('.type-btn').forEach(b=>b.classList.remove('active'));
     document.querySelector('[data-type="expense"]').classList.add('active');
+    
+    // 重置快捷分类选中状态
+    document.querySelectorAll('.quick-btn').forEach(b=>b.classList.remove('active'));
 }
 
 // 渲染账单列表
@@ -825,18 +1048,16 @@ function renderList(filter=null){
         const idx = filter ? bills.findIndex(x=>x.id===b.id) : i;
         html += `
         <div class="bill-item">
-            <div style="display:flex;align-items:center">
-                <div>
-                    <div style="font-size:15px;color:#333">${b.remark}</div>
-                    <div style="font-size:12px;color:#999">${formatDate(b.date)}</div>
-                </div>
+            <div class="bill-info">
+                <div class="bill-remark">${b.remark}</div>
+                <div class="bill-date">${formatDate(b.date)}</div>
             </div>
-            <div style="font-weight:bold" class="${b.type=='income'?'income':'expense'}">
+            <div class="bill-amount ${b.type=='income'?'income':'expense'}">
                 ${b.type=='income'?'+':'-' }¥${b.amount.toFixed(2)}
             </div>
-            <div style="display:flex;gap:8px">
-                <button style="width:28px;height:28px;border:none;border-radius:50%;background:#e3f2fd;color:#2196f3;cursor:pointer" onclick="editBill(${idx})">✏️</button>
-                <button style="width:28px;height:28px;border:none;border-radius:50%;background:#ffebee;color:#f44336;cursor:pointer" onclick="deleteBill(${idx})">🗑️</button>
+            <div class="bill-actions">
+                <button class="bill-action-btn edit-btn" onclick="editBill(${idx})">✏️</button>
+                <button class="bill-action-btn delete-btn" onclick="deleteBill(${idx})">🗑️</button>
             </div>
         </div>`;
     });
@@ -855,11 +1076,23 @@ function editBill(index) {
     document.getElementById('remark').value = bill.remark;
     document.getElementById('date').value = bill.date;
     
+    // 选中对应快捷分类
+    document.querySelectorAll('.quick-btn').forEach(b=>{
+        if(b.dataset.name === bill.remark) {
+            b.classList.add('active');
+        } else {
+            b.classList.remove('active');
+        }
+    });
+    
     // 修改按钮文字
     document.getElementById('addBill').textContent = '保存修改';
     
     // 滚动到表单
-    window.scrollTo(0, document.querySelector('.form-container').offsetTop - 20);
+    window.scrollTo({
+        top: document.querySelector('.form-container').offsetTop - 20,
+        behavior: 'smooth'
+    });
 }
 
 // 删除账单
@@ -960,7 +1193,7 @@ function searchByDate(d){
         else outSum+=b.amount;
     });
     
-    document.getElementById('searchResult').textContent = `${formatDate(d)}：收入 ¥${inSum.toFixed(2)}，支出 ¥${outSum.toFixed(2)}`;
+    document.getElementById('searchResult').textContent = `${formatDate(d)}：收入 ¥${inSum.toFixed(2)}，支出 ¥${outSum.toFixed(2)}，结余 ¥${(inSum-outSum).toFixed(2)}`;
     renderList(filteredList);
 }
 
