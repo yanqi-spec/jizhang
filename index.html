@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>小七记账 - 手机端</title>
+    <!-- 引入 html2canvas 用于生成图片 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -595,11 +597,68 @@
             font-size:14px;
         }
 
+        /* 生成报告弹窗 */
+        .report-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            flex-direction: column;
+        }
+        .report-img-container {
+            max-width: 90%;
+            max-height: 80%;
+            overflow: auto;
+            background: white;
+            border-radius: 12px;
+            padding: 10px;
+        }
+        .report-img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+        .report-buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+        }
+        .report-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .report-btn.save {
+            background: #4cd964;
+            color: white;
+        }
+        .report-btn.close {
+            background: #ff6b6b;
+            color: white;
+        }
+        .report-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+
         /* 隐藏元素 */
         .hidden { 
             display: none !important; 
         }
         #fileInput {
+            display: none;
+        }
+        #reportModal {
             display: none;
         }
     </style>
@@ -640,6 +699,17 @@
         </div>
         <div class="summary-tip" id="summaryTip"></div>
         <button class="summary-close" onclick="closeSummaryModal()">知道了</button>
+    </div>
+</div>
+
+<!-- 生成报告弹窗 -->
+<div class="report-modal hidden" id="reportModal">
+    <div class="report-img-container">
+        <img id="reportImg" class="report-img" alt="总结报告">
+    </div>
+    <div class="report-buttons">
+        <button class="report-btn save" id="saveReportBtn">保存到相册</button>
+        <button class="report-btn close" onclick="closeReportModal()">关闭</button>
     </div>
 </div>
 
@@ -751,6 +821,7 @@
     <button class="func-btn" id="importBtn">导入</button>
     <button class="func-btn" id="exportBtn">导出</button>
     <button class="func-btn" id="shareBtn">分享</button>
+    <button class="func-btn" id="generateReportBtn">生成报告</button>
 </div>
 <input type="file" id="fileInput" accept=".json" style="display:none">
 
@@ -805,6 +876,98 @@ document.addEventListener('DOMContentLoaded', function(){
     // 定时检查21点弹窗
     setInterval(checkSummaryModal, 60000); // 每分钟检查一次
 });
+
+// ===================== 生成报告功能 =====================
+function generateReport() {
+    // 1. 创建一个临时容器，把要生成报告的内容放进去
+    const reportContainer = document.createElement('div');
+    reportContainer.style.width = '375px'; // 手机宽度
+    reportContainer.style.padding = '20px';
+    reportContainer.style.background = '#f5f7fa';
+    reportContainer.style.borderRadius = '16px';
+    reportContainer.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+    reportContainer.style.position = 'absolute';
+    reportContainer.style.left = '-9999px'; // 移出屏幕外
+    reportContainer.style.top = '-9999px';
+    document.body.appendChild(reportContainer);
+
+    // 2. 克隆需要的模块到临时容器
+    const header = document.querySelector('.header').cloneNode(true);
+    const streakCard = document.querySelector('.streak-card').cloneNode(true);
+    const monthCard = document.querySelector('.month-card').cloneNode(true);
+    const tipContainer = document.querySelector('.tip-container').cloneNode(true);
+    const dateSearchCard = document.querySelector('.date-search-card').cloneNode(true);
+    const listContainer = document.querySelector('.list-container').cloneNode(true);
+
+    // 移除编辑/删除按钮，避免图片里出现操作按钮
+    const billActions = listContainer.querySelectorAll('.bill-actions');
+    billActions.forEach(btn => btn.remove());
+
+    // 添加标题
+    const title = document.createElement('div');
+    title.style.textAlign = 'center';
+    title.style.fontSize = '20px';
+    title.style.fontWeight = 'bold';
+    title.style.marginBottom = '15px';
+    title.style.color = '#333';
+    title.textContent = `${userNickname} 的记账总结报告`;
+    reportContainer.appendChild(title);
+
+    // 添加日期
+    const date = document.createElement('div');
+    date.style.textAlign = 'center';
+    date.style.fontSize = '14px';
+    date.style.color = '#999';
+    date.style.marginBottom = '20px';
+    date.textContent = `生成时间：${new Date().toLocaleString()}`;
+    reportContainer.appendChild(date);
+
+    // 添加各个模块
+    reportContainer.appendChild(header);
+    reportContainer.appendChild(streakCard);
+    reportContainer.appendChild(monthCard);
+    reportContainer.appendChild(tipContainer);
+    reportContainer.appendChild(dateSearchCard);
+    reportContainer.appendChild(listContainer);
+
+    // 3. 使用 html2canvas 生成图片
+    html2canvas(reportContainer, {
+        backgroundColor: '#f5f7fa',
+        scale: 2, // 提高清晰度
+        useCORS: true
+    }).then(canvas => {
+        // 4. 转换为图片并显示
+        const imgData = canvas.toDataURL('image/png');
+        document.getElementById('reportImg').src = imgData;
+        document.getElementById('reportModal').classList.remove('hidden');
+
+        // 5. 移除临时容器
+        document.body.removeChild(reportContainer);
+    }).catch(err => {
+        console.error('生成报告失败：', err);
+        alert('生成报告失败，请重试！');
+    });
+}
+
+function saveReport() {
+    const img = document.getElementById('reportImg');
+    if (!img.src) {
+        alert('没有可保存的报告图片！');
+        return;
+    }
+
+    // 创建下载链接
+    const link = document.createElement('a');
+    link.href = img.src;
+    link.download = `小七记账报告_${new Date().toLocaleDateString().replace(/\//g, '-')}.png`;
+    link.click();
+
+    alert('报告已保存到相册/下载文件夹！');
+}
+
+function closeReportModal() {
+    document.getElementById('reportModal').classList.add('hidden');
+}
 
 // ===================== 昵称相关功能 =====================
 function initNickname() {
@@ -961,6 +1124,10 @@ function bindAll(){
     document.getElementById('fileInput').onchange = importBill;
     document.getElementById('exportBtn').onclick = exportBill;
     document.getElementById('shareBtn').onclick = share;
+    
+    // 生成报告
+    document.getElementById('generateReportBtn').onclick = generateReport;
+    document.getElementById('saveReportBtn').onclick = saveReport;
     
     // 日期查询
     document.getElementById('searchBtn').onclick = ()=>searchByDate(document.getElementById('searchDate').value);
@@ -1151,7 +1318,7 @@ function updateMonth(){
     document.getElementById('monthBalance').textContent = '¥'+(inM-outM).toFixed(2);
 }
 
-// 修复：更新连续打卡天数（核心修复）
+// 更新连续打卡天数
 function updateStreak(){
     // 1. 获取所有有记账的日期并去重
     const dateSet = new Set();
