@@ -1151,31 +1151,76 @@ function updateMonth(){
     document.getElementById('monthBalance').textContent = '¥'+(inM-outM).toFixed(2);
 }
 
-// 更新连续打卡天数
+// 修复：更新连续打卡天数（核心修复）
 function updateStreak(){
+    // 1. 获取所有有记账的日期并去重
     const dateSet = new Set();
-    bills.forEach(b=>dateSet.add(b.date));
-    const dates = Array.from(dateSet).sort((a,b)=>new Date(b) - new Date(a));
+    bills.forEach(bill => {
+        dateSet.add(bill.date);
+    });
     
-    let streak = 0;
-    const today = new Date().toISOString().split('T')[0];
+    // 2. 转换为日期数组并按从新到旧排序
+    const dateArray = Array.from(dateSet).map(dateStr => new Date(dateStr));
+    dateArray.sort((a, b) => b - a); // 降序排列
     
-    if(dates[0] === today){
-        streak = 1;
-        for(let i=1; i<dates.length; i++){
-            const prevDate = new Date(dates[i-1]);
-            prevDate.setDate(prevDate.getDate() - 1);
-            const prevDateStr = prevDate.toISOString().split('T')[0];
-            
-            if(prevDateStr === dates[i]){
-                streak++;
-            } else {
-                break;
-            }
-        }
+    if (dateArray.length === 0) {
+        document.getElementById('streakDay').textContent = '0';
+        return;
     }
     
-    document.getElementById('streakDay').textContent = streak;
+    // 3. 获取今天的日期（仅保留年月日）
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // 4. 获取最近一次记账的日期
+    const lastRecordDate = dateArray[0];
+    lastRecordDate.setHours(0, 0, 0, 0);
+    
+    let streak = 0;
+    
+    // 5. 如果最近记账是今天或昨天（处理跨天情况），开始计算连续天数
+    const oneDay = 24 * 60 * 60 * 1000; // 一天的毫秒数
+    const dayDiff = Math.floor((today - lastRecordDate) / oneDay);
+    
+    // 只计算连续到今天或昨天的情况（超过1天则中断）
+    if (dayDiff <= 1) {
+        streak = 1; // 至少有一天
+        
+        // 从第二天开始检查是否连续
+        for (let i = 1; i < dateArray.length; i++) {
+            const currentDate = new Date(dateArray[i]);
+            currentDate.setHours(0, 0, 0, 0);
+            
+            const prevDate = new Date(dateArray[i-1]);
+            prevDate.setHours(0, 0, 0, 0);
+            prevDate.setDate(prevDate.getDate() - 1); // 前一天
+            
+            // 如果当前日期等于前一天的日期，说明连续
+            if (currentDate.getTime() === prevDate.getTime()) {
+                streak++;
+            } else {
+                break; // 不连续则停止计算
+            }
+        }
+        
+        // 特殊处理：如果最后记账是昨天，且今天还没记账，连续天数不变
+        if (dayDiff === 1) {
+            // 验证是否真的连续到昨天
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            
+            if (lastRecordDate.getTime() === yesterday.getTime()) {
+                // 连续天数保持计算结果
+            } else {
+                streak = 0;
+            }
+        }
+    } else {
+        // 超过1天没记账，连续天数重置为0
+        streak = 0;
+    }
+    
+    document.getElementById('streakDay').textContent = streak.toString();
 }
 
 // 按日期查询
