@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>小七记账 - </title>
+    <title>小七记账</title>
     <style>
+        /* 样式部分和之前一致，无需修改，这里省略（保留原样式即可） */
         * {
             margin: 0;
             padding: 0;
@@ -648,11 +649,72 @@
 </div>
 
 <script>
+// ========== 核心改造：IndexedDB 存储图片 ==========
+let db;
+// 初始化IndexedDB
+function initDB() {
+    return new Promise((resolve) => {
+        const request = indexedDB.open('BillImagesDB', 1);
+        
+        // 创建/升级数据库
+        request.onupgradeneeded = (e) => {
+            db = e.target.result;
+            if (!db.objectStoreNames.contains('images')) {
+                db.createObjectStore('images', { keyPath: 'id' });
+            }
+        };
+        
+        request.onsuccess = (e) => {
+            db = e.target.result;
+            resolve();
+        };
+        
+        request.onerror = () => {
+            alert('数据库初始化失败，图片功能可能受限');
+            resolve();
+        };
+    });
+}
+
+// 保存图片到IndexedDB
+async function saveImageToDB(imageId, base64) {
+    if (!db) await initDB();
+    return new Promise((resolve) => {
+        const tx = db.transaction('images', 'readwrite');
+        const store = tx.objectStore('images');
+        store.put({ id: imageId, data: base64 });
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => resolve(false);
+    });
+}
+
+// 从IndexedDB获取图片
+async function getImageFromDB(imageId) {
+    if (!db || !imageId) return null;
+    return new Promise((resolve) => {
+        const tx = db.transaction('images', 'readonly');
+        const store = tx.objectStore('images');
+        const request = store.get(imageId);
+        request.onsuccess = (e) => resolve(e.target.result?.data || null);
+        request.onerror = () => resolve(null);
+    });
+}
+
+// 删除IndexedDB中的图片
+async function deleteImageFromDB(imageId) {
+    if (!db || !imageId) return;
+    const tx = db.transaction('images', 'readwrite');
+    const store = tx.objectStore('images');
+    store.delete(imageId);
+}
+
+// ========== 原有逻辑改造 ==========
 let bills = JSON.parse(localStorage.getItem('bills')) || [];
 let editIndex = -1;
 let userNickname = localStorage.getItem('userNickname') || '小七记账';
 let summaryShown = JSON.parse(localStorage.getItem('summaryShown')) || {};
-let currentImage = null;
+let currentImage = null; // 预览用的Base64
+let currentImageId = null; // 当前图片的ID
 
 const tips = [
     "早餐吃好，一天精神～",
@@ -665,7 +727,8 @@ const tips = [
     "适当奖励自己，消费也要有幸福感～"
 ];
 
-document.addEventListener('DOMContentLoaded', function(){
+document.addEventListener('DOMContentLoaded', async function(){
+    await initDB(); // 初始化数据库
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('date').value = today;
     document.getElementById('searchDate').value = today;
@@ -680,9 +743,12 @@ document.addEventListener('DOMContentLoaded', function(){
     searchByDate(today);
     checkSummaryModal();
 
-    document.getElementById('billList').addEventListener('click', function(e) {
+    document.getElementById('billList').addEventListener('click', async function(e) {
         if (e.target.classList.contains('bill-image-thumb')) {
-            viewImage(e.target.dataset.src);
+            const imageId = e.target.dataset.imageid;
+            const imageSrc = await getImageFromDB(imageId);
+            if (imageSrc) viewImage(imageSrc);
+            else alert('图片已失效');
         }
     });
 });
@@ -727,6 +793,9 @@ async function previewImage(input) {
         input.value = '';
         return;
     }
+    // 生成唯一图片ID
+    currentImageId = 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    // 压缩并保存预览
     currentImage = await compressImage(file);
     document.getElementById('previewImage').src = currentImage;
     document.getElementById('previewContainer').style.display = 'block';
@@ -735,6 +804,7 @@ async function previewImage(input) {
 
 function removeImage() {
     currentImage = null;
+    currentImageId = null;
     document.getElementById('previewContainer').style.display = 'none';
     document.getElementById('previewImage').src = '';
 }
@@ -848,8 +918,8 @@ function bindAll() {
     document.getElementById('searchBtn').onclick = ()=>searchByDate(document.getElementById('searchDate').value);
 }
 
-// 保存账单（手机防卡死）
-function saveBill() {
+// 保存账单（核心改造：图片存IndexedDB，文字存localStorage）
+async function saveBill() {
     const type = document.querySelector('.type-btn.active').dataset.type;
     const amount = parseFloat(document.getElementById('amount').value);
     const remark = document.getElementById('remark').value.trim() || '未分类';
@@ -858,27 +928,53 @@ function saveBill() {
     if(!amount || amount<=0) return alert('请输入有效金额');
     if(!date) return alert('请选择日期');
 
-    const bill = { id:Date.now(), type, amount, remark, date, image:currentImage };
-    const old = [...bills];
+    // 准备账单数据（只存图片ID，不存Base64）
+    const bill = { 
+        id: Date.now(), 
+        type, 
+        amount, 
+        remark, 
+        date, 
+        imageId: currentImageId // 替换原image字段为imageId
+    };
+    const oldBills = [...bills];
+    const oldImageId = editIndex !== -1 ? bills[editIndex].imageId : null;
 
+    // 更新账单列表
     if(editIndex===-1) bills.unshift(bill);
-    else { bills[editIndex] = bill; editIndex=-1; document.getElementById('addBill').textContent='添加账单'; }
-
-    try {
-        localStorage.setItem('bills', JSON.stringify(bills));
-    } catch(e) {
-        bills = old;
-        return alert('保存失败：数据太多，请删除旧账单');
+    else { 
+        bills[editIndex] = bill; 
+        editIndex=-1; 
+        document.getElementById('addBill').textContent='添加账单'; 
     }
 
-    resetForm();
-    renderList();
-    updateStats();
-    updateMonth();
-    updateStreak();
-    searchByDate(date);
-    fire();
-    alert('保存成功！');
+    try {
+        // 1. 保存图片到IndexedDB（如果有图片）
+        if (currentImageId && currentImage) {
+            const saveSuccess = await saveImageToDB(currentImageId, currentImage);
+            if (!saveSuccess) throw new Error('图片保存失败');
+        }
+        // 2. 删除编辑时替换的旧图片
+        if (oldImageId && oldImageId !== currentImageId) {
+            await deleteImageFromDB(oldImageId);
+        }
+        // 3. 保存账单文字数据到localStorage（体积极小）
+        localStorage.setItem('bills', JSON.stringify(bills));
+        
+        // 重置并更新界面
+        resetForm();
+        renderList();
+        updateStats();
+        updateMonth();
+        updateStreak();
+        searchByDate(date);
+        fire();
+        alert('保存成功！');
+    } catch(e) {
+        // 失败回滚
+        bills = oldBills;
+        alert('保存失败：' + e.message);
+    }
 }
 
 function resetForm() {
@@ -891,17 +987,23 @@ function resetForm() {
     removeImage();
 }
 
-function renderList(filter) {
+// 渲染列表（改造：异步加载图片）
+async function renderList(filter) {
     const arr = filter || bills;
     const el = document.getElementById('billList');
     if(arr.length===0) return el.innerHTML='<div class="empty-tip">暂无账单</div>';
+    
     let html='';
+    // 先渲染文字部分，避免卡顿
     arr.forEach((b,i)=>{
         const idx = filter ? bills.findIndex(x=>x.id===b.id) : i;
-        const img = b.image ? `<img src="${b.image}" data-src="${b.image}" class="bill-image-thumb">` : '';
+        // 图片占位（后续异步加载）
+        const imgPlaceholder = b.imageId ? 
+            `<img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIGZpbGw9IiNlZWVlZWUiLz48Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIxMCIgZmlsbD0iIzY2N2VlYSIvPjwvc3ZnPg==" data-imageid="${b.imageId}" class="bill-image-thumb">` : '';
+        
         html+=`
-        <div class="bill-item">
-            ${img}
+        <div class="bill-item" data-id="${b.id}">
+            ${imgPlaceholder}
             <div class="bill-info">
                 <div class="bill-remark">${b.remark}</div>
                 <div class="bill-date">${formatDate(b.date)}</div>
@@ -916,26 +1018,54 @@ function renderList(filter) {
         </div>`;
     });
     el.innerHTML = html;
+
+    // 异步加载图片（避免渲染卡顿）
+    const thumbElements = el.querySelectorAll('.bill-image-thumb');
+    for (const el of thumbElements) {
+        const imageId = el.dataset.imageid;
+        const imageSrc = await getImageFromDB(imageId);
+        if (imageSrc) el.src = imageSrc;
+    }
 }
 
-function editBill(idx) {
+// 编辑账单（改造：加载图片）
+async function editBill(idx) {
     const b = bills[idx];
     editIndex = idx;
+    
+    // 基础信息填充
     document.querySelectorAll('.type-btn').forEach(x=>x.classList.remove('active'));
     document.querySelector(`[data-type="${b.type}"]`).classList.add('active');
     document.getElementById('amount').value = b.amount;
     document.getElementById('remark').value = b.remark;
     document.getElementById('date').value = b.date;
-    if(b.image){
-        currentImage = b.image;
-        document.getElementById('previewImage').src = b.image;
-        document.getElementById('previewContainer').style.display='block';
-    } else removeImage();
+    
+    // 加载图片
+    if(b.imageId){
+        currentImageId = b.imageId;
+        currentImage = await getImageFromDB(b.imageId);
+        if (currentImage) {
+            document.getElementById('previewImage').src = currentImage;
+            document.getElementById('previewContainer').style.display='block';
+        } else {
+            removeImage();
+        }
+    } else {
+        removeImage();
+    }
+    
     document.getElementById('addBill').textContent='保存修改';
 }
 
-function deleteBill(idx) {
+// 删除账单（改造：删除图片）
+async function deleteBill(idx) {
     if(!confirm('确定删除？')) return;
+    const bill = bills[idx];
+    // 删除图片
+    if (bill.imageId) {
+        await deleteImageFromDB(bill.imageId);
+    }
+    // 删除账单
     bills.splice(idx,1);
     localStorage.setItem('bills',JSON.stringify(bills));
     renderList();
@@ -1005,14 +1135,26 @@ function searchByDate(d) {
     renderList(list);
 }
 
-function importBill(e) {
+// 导入账单（改造：兼容旧数据）
+async function importBill(e) {
     const f = e.target.files[0];
     if(!f) return;
     const r = new FileReader();
-    r.onload = ev=>{
+    r.onload = async ev=>{
         try{
             const data = JSON.parse(ev.target.result);
             if(Array.isArray(data)){
+                // 处理旧数据（含image字段的）
+                for (const bill of data) {
+                    if (bill.image && !bill.imageId) {
+                        // 生成新图片ID
+                        bill.imageId = 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                        // 保存图片到IndexedDB
+                        await saveImageToDB(bill.imageId, bill.image);
+                        // 删除原image字段
+                        delete bill.image;
+                    }
+                }
                 bills = data;
                 localStorage.setItem('bills',JSON.stringify(bills));
                 renderList();
@@ -1026,8 +1168,18 @@ function importBill(e) {
     r.readAsText(f);
 }
 
-function exportBill() {
-    const blob = new Blob([JSON.stringify(bills)],{type:'application/json'});
+// 导出账单（改造：包含图片数据）
+async function exportBill() {
+    // 复制账单数据
+    const exportBills = JSON.parse(JSON.stringify(bills));
+    // 补充图片数据
+    for (const bill of exportBills) {
+        if (bill.imageId) {
+            bill.image = await getImageFromDB(bill.imageId);
+        }
+    }
+    // 导出
+    const blob = new Blob([JSON.stringify(exportBills)],{type:'application/json'});
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = '账单_'+new Date().toISOString().split('T')[0]+'.json';
