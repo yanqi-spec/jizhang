@@ -952,6 +952,14 @@ document.addEventListener('DOMContentLoaded', function(){
     checkSummaryModal();
     // 定时检查21点弹窗
     setInterval(checkSummaryModal, 60000); // 每分钟检查一次
+    
+    // 新增：绑定账单图片点击事件（事件委托）
+    document.getElementById('billList').addEventListener('click', function(e) {
+        if (e.target.classList.contains('bill-image-thumb')) {
+            const imageSrc = e.target.getAttribute('data-src');
+            viewImage(imageSrc);
+        }
+    });
 });
 
 // ===================== 图片上传相关功能 =====================
@@ -1250,7 +1258,7 @@ function resetForm(){
     removeImage();
 }
 
-// 渲染账单列表
+// 渲染账单列表（修复核心）
 function renderList(filter=null){
     const arr = filter || bills;
     const el = document.getElementById('billList');
@@ -1264,9 +1272,9 @@ function renderList(filter=null){
     arr.forEach((b,i)=>{
         const idx = filter ? bills.findIndex(x=>x.id===b.id) : i;
         
-        // 图片缩略图HTML
+        // 修复：图片缩略图HTML - 使用data-src存储Base64，移除内联onclick
         const imageHtml = b.image ? 
-            `<img src="${b.image}" alt="账单图片" class="bill-image-thumb" onclick="viewImage('${b.image}')">` : '';
+            `<img src="${b.image}" data-src="${b.image}" alt="账单图片" class="bill-image-thumb">` : '';
         
         html += `
         <div class="bill-item">
