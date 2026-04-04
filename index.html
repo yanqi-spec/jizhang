@@ -425,6 +425,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            cursor: pointer; /* 加了小手 */
         }
         .bill-info { flex: 1; }
         .bill-remark { font-size: 15px; color: #333; margin-bottom: 4px; font-weight: 500; }
@@ -479,6 +480,104 @@
         }
         .hidden { display: none !important; }
         #fileInput { display: none; }
+
+        /* 新增：每日统计卡片 */
+        .day-stats-card {
+            background: white;
+            margin: 0 15px 15px;
+            padding: 18px 15px;
+            border-radius: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .day-stats-title {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 12px;
+            color: #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .day-stats-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            font-size: 15px;
+            border-bottom: 1px solid #f5f5f5;
+        }
+        .day-stats-row:last-child { border-bottom: none; }
+        .day-stats-label { color: #666; }
+        .day-stats-value { font-weight: bold; }
+        .day-rank-btn {
+            padding: 6px 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        /* 新增：每日排行弹窗 */
+        .day-rank-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+        }
+        .day-rank-content {
+            background: white;
+            width: 90%;
+            max-width: 380px;
+            border-radius: 18px;
+            padding: 25px 20px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .day-rank-title {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        .rank-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+            align-items: center;
+        }
+        .rank-date { font-size: 15px; color: #333; }
+        .rank-expense { font-weight: bold; color: #ff6b6b; font-size: 16px; }
+        .rank-no {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #667eea;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            margin-right: 10px;
+        }
+        .rank-close {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            margin-top: 20px;
+            font-weight: bold;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -516,6 +615,40 @@
         </div>
         <div class="summary-tip" id="summaryTip"></div>
         <button class="summary-close" onclick="closeSummaryModal()">知道了</button>
+    </div>
+</div>
+
+<!-- 新增：每日详情弹窗 -->
+<div class="summary-modal hidden" id="dayDetailModal">
+    <div class="summary-content">
+        <div class="summary-title" id="dayDetailTitle">日期详情</div>
+        <div class="summary-date" id="dayDetailDate"></div>
+        <div class="summary-item">
+            <span class="summary-label">当日收入</span>
+            <span class="summary-income" id="dayDetailIncome">¥0.00</span>
+        </div>
+        <div class="summary-item">
+            <span class="summary-label">当日支出</span>
+            <span class="summary-expense" id="dayDetailExpense">¥0.00</span>
+        </div>
+        <div class="summary-item">
+            <span class="summary-label">当日结余</span>
+            <span class="summary-balance" id="dayDetailBalance">¥0.00</span>
+        </div>
+        <div class="summary-item">
+            <span class="summary-label">账单笔数</span>
+            <span id="dayDetailCount">0</span>
+        </div>
+        <button class="summary-close" onclick="closeDayDetailModal()">关闭</button>
+    </div>
+</div>
+
+<!-- 新增：每日消费排行弹窗 -->
+<div class="day-rank-modal hidden" id="dayRankModal">
+    <div class="day-rank-content">
+        <div class="day-rank-title">📊 每日消费排行</div>
+        <div id="dayRankList"></div>
+        <button class="rank-close" onclick="closeDayRankModal()">关闭</button>
     </div>
 </div>
 
@@ -576,6 +709,24 @@
     </div>
 </div>
 
+<!-- 新增：每日最高/最低消费卡片 -->
+<div class="day-stats-card">
+    <div class="day-stats-title">
+        <span>📈 每日消费统计</span>
+        <button class="day-rank-btn" onclick="openDayRankModal()">查看全部排行</button>
+    </div>
+    <div class="day-stats-row" onclick="openDayDetailByDate(document.getElementById('maxDayDate').innerText)">
+        <span class="day-stats-label">💰 消费最高日</span>
+        <span class="day-stats-value" id="maxDayDate">-</span>
+        <span class="expense" id="maxDayExpense">¥0.00</span>
+    </div>
+    <div class="day-stats-row" onclick="openDayDetailByDate(document.getElementById('minDayDate').innerText)">
+        <span class="day-stats-label">💸 消费最低日</span>
+        <span class="day-stats-value" id="minDayDate">-</span>
+        <span class="expense" id="minDayExpense">¥0.00</span>
+    </div>
+</div>
+
 <div class="tip-container">
     <div class="tip-title">💡 今日小建议</div>
     <div class="tip-content" id="tipContent"></div>
@@ -586,6 +737,8 @@
         <button class="search-btn" id="searchBtn">查询</button>
     </div>
     <div class="search-right">
+        <!-- 点击日期后显示在这里 ↑ -->
+        <div id="dayExpenseTip" style="margin-bottom:8px; font-size:14px;"></div>
         <input type="date" class="search-date-input" id="searchDate">
         <div class="search-result" id="searchResult"></div>
     </div>
@@ -740,8 +893,22 @@ document.addEventListener('DOMContentLoaded', async function(){
     updateStats();
     updateMonth();
     updateStreak();
+    updateDayStats();
     searchByDate(today);
     checkSummaryModal();
+
+    // 新增：点击账单日期 → 显示当天消费
+    document.getElementById('billList').addEventListener('click', function(e){
+        const item = e.target.closest('.bill-item');
+        if(!item) return;
+        const date = item.dataset.date;
+        if(date) showDayExpenseOnTop(date);
+    });
+
+    // 新增：选择日期时也显示
+    document.getElementById('searchDate').addEventListener('change', function(){
+        showDayExpenseOnTop(this.value);
+    });
 
     document.getElementById('billList').addEventListener('click', async function(e) {
         if (e.target.classList.contains('bill-image-thumb')) {
@@ -752,6 +919,19 @@ document.addEventListener('DOMContentLoaded', async function(){
         }
     });
 });
+
+// 新增：在日期上方显示当日消费
+function showDayExpenseOnTop(date){
+    if(!date) return;
+    let expense = 0, income =0;
+    bills.forEach(b=>{
+        if(b.date===date){
+            b.type==='expense' ? expense+=b.amount : income+=b.amount;
+        }
+    });
+    const tip = `${date} · 支出 ¥${expense.toFixed(2)} · 收入 ¥${income.toFixed(2)}`;
+    document.getElementById('dayExpenseTip').innerText = tip;
+}
 
 // 图片压缩
 function compressImage(file, maxWidth = 800, quality = 0.5) {
@@ -869,6 +1049,106 @@ function closeSummaryModal() {
     document.getElementById('summaryModal').classList.add('hidden');
 }
 
+// 新增：打开单日详情
+function openDayDetailByDate(date) {
+    if (!date || date === '-') return;
+    let inSum = 0, outSum = 0, count = 0;
+    bills.forEach(b => {
+        if (b.date === date) {
+            count++;
+            b.type === 'income' ? inSum += b.amount : outSum += b.amount;
+        }
+    });
+    document.getElementById('dayDetailTitle').innerText = formatDate(date) + ' 详情';
+    document.getElementById('dayDetailDate').innerText = date;
+    document.getElementById('dayDetailIncome').innerText = '¥' + inSum.toFixed(2);
+    document.getElementById('dayDetailExpense').innerText = '¥' + outSum.toFixed(2);
+    document.getElementById('dayDetailBalance').innerText = '¥' + (inSum - outSum).toFixed(2);
+    document.getElementById('dayDetailCount').innerText = count;
+    document.getElementById('dayDetailModal').classList.remove('hidden');
+}
+function closeDayDetailModal() {
+    document.getElementById('dayDetailModal').classList.add('hidden');
+}
+
+// 新增：计算每日消费统计
+function updateDayStats() {
+    if (bills.length === 0) {
+        document.getElementById('maxDayDate').innerText = '-';
+        document.getElementById('maxDayExpense').innerText = '¥0.00';
+        document.getElementById('minDayDate').innerText = '-';
+        document.getElementById('minDayExpense').innerText = '¥0.00';
+        return;
+    }
+
+    // 按天统计支出
+    let dayMap = {};
+    bills.forEach(b => {
+        if (b.type === 'expense') {
+            if (!dayMap[b.date]) dayMap[b.date] = 0;
+            dayMap[b.date] += b.amount;
+        }
+    });
+
+    let dayList = Object.keys(dayMap).map(date => ({
+        date,
+        expense: dayMap[date]
+    }));
+
+    if (dayList.length === 0) {
+        document.getElementById('maxDayDate').innerText = '-';
+        document.getElementById('maxDayExpense').innerText = '¥0.00';
+        document.getElementById('minDayDate').innerText = '-';
+        document.getElementById('minDayExpense').innerText = '¥0.00';
+        return;
+    }
+
+    // 排序
+    dayList.sort((a, b) => b.expense - a.expense);
+    let max = dayList[0];
+    let min = dayList[dayList.length - 1];
+
+    document.getElementById('maxDayDate').innerText = max.date;
+    document.getElementById('maxDayExpense').innerText = '¥' + max.expense.toFixed(2);
+    document.getElementById('minDayDate').innerText = min.date;
+    document.getElementById('minDayExpense').innerText = '¥' + min.expense.toFixed(2);
+}
+
+// 新增：打开每日消费排行
+function openDayRankModal() {
+    let dayMap = {};
+    bills.forEach(b => {
+        if (b.type === 'expense') {
+            if (!dayMap[b.date]) dayMap[b.date] = 0;
+            dayMap[b.date] += b.amount;
+        }
+    });
+
+    let list = Object.keys(dayMap).map(d => ({
+        date: d,
+        expense: dayMap[d]
+    })).sort((a, b) => b.expense - a.expense);
+
+    let html = '';
+    list.forEach((item, i) => {
+        html += `
+        <div class="rank-item" onclick="openDayDetailByDate('${item.date}')">
+            <div style="display:flex;align-items:center">
+                <div class="rank-no">${i+1}</div>
+                <div class="rank-date">${item.date}</div>
+            </div>
+            <div class="rank-expense">¥${item.expense.toFixed(2)}</div>
+        </div>`;
+    });
+
+    if (list.length === 0) html = '<div class="empty-tip">暂无消费记录</div>';
+    document.getElementById('dayRankList').innerHTML = html;
+    document.getElementById('dayRankModal').classList.remove('hidden');
+}
+function closeDayRankModal() {
+    document.getElementById('dayRankModal').classList.add('hidden');
+}
+
 function formatDate(d) {
     const t = new Date(d);
     return t.getFullYear()+'年'+(t.getMonth()+1)+'月'+t.getDate()+'日';
@@ -967,6 +1247,7 @@ async function saveBill() {
         updateStats();
         updateMonth();
         updateStreak();
+        updateDayStats();
         searchByDate(date);
         fire();
         alert('保存成功！');
@@ -994,15 +1275,13 @@ async function renderList(filter) {
     if(arr.length===0) return el.innerHTML='<div class="empty-tip">暂无账单</div>';
     
     let html='';
-    // 先渲染文字部分，避免卡顿
     arr.forEach((b,i)=>{
         const idx = filter ? bills.findIndex(x=>x.id===b.id) : i;
-        // 图片占位（后续异步加载）
         const imgPlaceholder = b.imageId ? 
             `<img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIGZpbGw9IiNlZWVlZWUiLz48Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIxMCIgZmlsbD0iIzY2N2VlYSIvPjwvc3ZnPg==" data-imageid="${b.imageId}" class="bill-image-thumb">` : '';
         
         html+=`
-        <div class="bill-item" data-id="${b.id}">
+        <div class="bill-item" data-id="${b.id}" data-date="${b.date}">
             ${imgPlaceholder}
             <div class="bill-info">
                 <div class="bill-remark">${b.remark}</div>
@@ -1019,7 +1298,6 @@ async function renderList(filter) {
     });
     el.innerHTML = html;
 
-    // 异步加载图片（避免渲染卡顿）
     const thumbElements = el.querySelectorAll('.bill-image-thumb');
     for (const el of thumbElements) {
         const imageId = el.dataset.imageid;
@@ -1033,14 +1311,12 @@ async function editBill(idx) {
     const b = bills[idx];
     editIndex = idx;
     
-    // 基础信息填充
     document.querySelectorAll('.type-btn').forEach(x=>x.classList.remove('active'));
     document.querySelector(`[data-type="${b.type}"]`).classList.add('active');
     document.getElementById('amount').value = b.amount;
     document.getElementById('remark').value = b.remark;
     document.getElementById('date').value = b.date;
     
-    // 加载图片
     if(b.imageId){
         currentImageId = b.imageId;
         currentImage = await getImageFromDB(b.imageId);
@@ -1061,17 +1337,16 @@ async function editBill(idx) {
 async function deleteBill(idx) {
     if(!confirm('确定删除？')) return;
     const bill = bills[idx];
-    // 删除图片
     if (bill.imageId) {
         await deleteImageFromDB(bill.imageId);
     }
-    // 删除账单
     bills.splice(idx,1);
     localStorage.setItem('bills',JSON.stringify(bills));
     renderList();
     updateStats();
     updateMonth();
     updateStreak();
+    updateDayStats();
     searchByDate(document.getElementById('searchDate').value);
 }
 
@@ -1144,14 +1419,10 @@ async function importBill(e) {
         try{
             const data = JSON.parse(ev.target.result);
             if(Array.isArray(data)){
-                // 处理旧数据（含image字段的）
                 for (const bill of data) {
                     if (bill.image && !bill.imageId) {
-                        // 生成新图片ID
                         bill.imageId = 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                        // 保存图片到IndexedDB
                         await saveImageToDB(bill.imageId, bill.image);
-                        // 删除原image字段
                         delete bill.image;
                     }
                 }
@@ -1161,6 +1432,7 @@ async function importBill(e) {
                 updateStats();
                 updateMonth();
                 updateStreak();
+                updateDayStats();
                 alert('导入成功！');
             }
         }catch{ alert('导入失败'); }
@@ -1170,15 +1442,12 @@ async function importBill(e) {
 
 // 导出账单（改造：包含图片数据）
 async function exportBill() {
-    // 复制账单数据
     const exportBills = JSON.parse(JSON.stringify(bills));
-    // 补充图片数据
     for (const bill of exportBills) {
         if (bill.imageId) {
             bill.image = await getImageFromDB(bill.imageId);
         }
     }
-    // 导出
     const blob = new Blob([JSON.stringify(exportBills)],{type:'application/json'});
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
