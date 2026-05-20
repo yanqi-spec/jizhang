@@ -1476,6 +1476,9 @@ function searchByDate(date) {
         笔数：${count}笔
     `;
     document.getElementById('searchResult').textContent = resultText;
+
+    // 修复：日期查询后恢复显示全部账单
+    renderList();
 }
 
 // 更新总统计
