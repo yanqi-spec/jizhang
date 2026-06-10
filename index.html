@@ -222,23 +222,55 @@
             margin: 15px;
             padding: 20px 15px;
             border-radius: 15px;
-            text-align: center;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .streak-left {
+            text-align: left;
         }
         .streak-title {
             font-size: 14px;
             color: #666;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
         }
         .streak-day {
-            font-size: 32px;
+            font-size: 28px;
             font-weight: bold;
             color: #667eea;
-            margin: 5px 0;
+            line-height: 1.2;
         }
         .streak-desc {
             font-size: 12px;
             color: #999;
+            margin-top: 4px;
+        }
+        .streak-right {
+            text-align: right;
+            background: linear-gradient(135deg, #f0f2ff 0%, #e9eaff 100%);
+            padding: 10px 16px;
+            border-radius: 28px;
+            box-shadow: 0 2px 6px rgba(102,126,234,0.1);
+        }
+        .total-days-label {
+            font-size: 12px;
+            color: #667eea;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+        .total-days-number {
+            font-size: 24px;
+            font-weight: 800;
+            color: #5a67d8;
+            line-height: 1;
+            margin-left: 4px;
+        }
+        .total-days-unit {
+            font-size: 12px;
+            color: #7c8bdf;
+            font-weight: 500;
         }
         .month-card {
             background: white;
@@ -701,7 +733,19 @@
     </div>
 </div>
 
-<div class="streak-card"><div class="streak-title">📅 记账连续天数</div><div class="streak-day" id="streakDay">0</div><div class="streak-desc">坚持记账，越记越有钱～</div></div>
+<!-- 连续天数卡片 + 新增已记账总天数 -->
+<div class="streak-card">
+    <div class="streak-left">
+        <div class="streak-title">📅 记账连续天数</div>
+        <div class="streak-day" id="streakDay">0</div>
+        <div class="streak-desc">坚持记账，越记越有钱～</div>
+    </div>
+    <div class="streak-right">
+        <div class="total-days-label">📆 已记账</div>
+        <div><span class="total-days-number" id="totalRecordDays">0</span><span class="total-days-unit"> 天</span></div>
+    </div>
+</div>
+
 <div class="month-card"><div class="month-title">本月概况</div><div class="month-row"><span>本月收入</span><span class="income" id="monthIncome">¥0.00</span></div><div class="month-row"><span>本月支出</span><span class="expense" id="monthExpense">¥0.00</span></div><div class="month-row"><span>本月结余</span><span style="font-weight:bold" id="monthBalance">¥0.00</span></div></div>
 
 <div class="day-stats-card"><div class="day-stats-title"><span>📈 每日消费统计</span><button class="day-rank-btn" onclick="openDayRankModal()">查看全部排行</button></div>
@@ -729,7 +773,6 @@
 
 <div class="list-container">
     <div class="list-title">📋 最近账单 <span class="search-badge" id="searchBadge" style="display: none;">🔍 筛选模式</span></div>
-    <!-- 新增关键词搜索栏 -->
     <div class="search-input-area">
         <span class="search-icon">🔎</span>
         <input type="text" class="keyword-input" id="keywordSearch" placeholder="搜索金额 / 备注关键字 ..." autocomplete="off">
@@ -739,7 +782,7 @@
 </div>
 
 <script>
-// ========== 核心逻辑 + 新增搜索功能 ==========
+// ========== 核心逻辑 + 已记账总天数 ==========
 let db;
 let bills = JSON.parse(localStorage.getItem('bills')) || [];
 let editIndex = -1;
@@ -747,7 +790,7 @@ let userNickname = localStorage.getItem('userNickname') || '小七记账';
 let summaryShown = JSON.parse(localStorage.getItem('summaryShown')) || {};
 let currentImage = null;
 let currentImageId = null;
-let currentSearchKeyword = '';   // 当前搜索词
+let currentSearchKeyword = '';   
 
 const tips = ["早餐吃好，一天精神～","少喝一杯奶茶，多存一笔钱","记账让你更懂钱","冲动消费先等24小时","小钱不记，大钱不留","合理规划消费，生活更从容～","今日结余不错，继续保持！","适当奖励自己，消费也要有幸福感～"];
 
@@ -787,7 +830,6 @@ async function deleteImageFromDB(imageId) {
     tx.objectStore('images').delete(imageId);
 }
 
-// 压缩图片
 function compressImage(file, maxWidth = 800, quality = 0.5) {
     return new Promise((resolve) => {
         const reader = new FileReader();
@@ -821,11 +863,9 @@ function removeImage() { currentImage = null; currentImageId = null; document.ge
 function viewImage(src) { document.getElementById('viewerImage').src = src; document.getElementById('imageViewer').style.display = 'flex'; }
 function closeImageViewer() { document.getElementById('imageViewer').style.display = 'none'; }
 
-// 筛选函数：根据关键词 (金额匹配数字 或 备注包含文字)
 function filterBillsByKeyword(keyword) {
     if (!keyword.trim()) return bills.slice();
     const kw = keyword.trim().toLowerCase();
-    // 判断是否为纯数字或金额格式 (如 12.5)
     const numberMatch = parseFloat(kw);
     const isNumberSearch = !isNaN(numberMatch) && isFinite(numberMatch);
     return bills.filter(bill => {
@@ -835,7 +875,16 @@ function filterBillsByKeyword(keyword) {
     });
 }
 
-// 渲染列表（整合搜索）
+// 计算已记账总天数（有账单的不同日期数量）
+function updateTotalRecordDays() {
+    if (!bills.length) {
+        document.getElementById('totalRecordDays').innerText = '0';
+        return;
+    }
+    const uniqueDays = new Set(bills.map(b => b.date));
+    document.getElementById('totalRecordDays').innerText = uniqueDays.size;
+}
+
 async function renderList(overrideList = null) {
     let sourceBills = overrideList !== null ? overrideList : (currentSearchKeyword ? filterBillsByKeyword(currentSearchKeyword) : bills);
     const el = document.getElementById('billList');
@@ -872,7 +921,6 @@ async function renderList(overrideList = null) {
 function escapeHtml(str) { return str.replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
 function formatDate(d) { const t = new Date(d); return t.getFullYear()+'年'+(t.getMonth()+1)+'月'+t.getDate()+'日'; }
 
-// 搜索关键词监听 + UI
 function setupSearchListener() {
     const input = document.getElementById('keywordSearch');
     const clearBtn = document.getElementById('clearSearchBtn');
@@ -881,7 +929,7 @@ function setupSearchListener() {
         currentSearchKeyword = val;
         if (val.trim() === '') {
             clearBtn.style.display = 'none';
-            renderList(); // 全量显示
+            renderList();
         } else {
             clearBtn.style.display = 'flex';
             const filtered = filterBillsByKeyword(val);
@@ -898,7 +946,6 @@ function setupSearchListener() {
     });
 }
 
-// 保存账单（搜索后依然维持原数据）
 async function saveBill() {
     const type = document.querySelector('.type-btn.active').dataset.type;
     const amount = parseFloat(document.getElementById('amount').value);
@@ -918,7 +965,7 @@ async function saveBill() {
         resetForm();
         if (currentSearchKeyword) renderList(filterBillsByKeyword(currentSearchKeyword));
         else renderList();
-        updateStats(); updateMonth(); updateStreak(); updateDayStats();
+        updateStats(); updateMonth(); updateStreak(); updateDayStats(); updateTotalRecordDays();
         const searchDateVal = document.getElementById('searchDate').value;
         if(searchDateVal) searchByDate(searchDateVal);
         fire(); alert('保存成功！');
@@ -957,7 +1004,7 @@ async function deleteBill(idx) {
     localStorage.setItem('bills',JSON.stringify(bills));
     if (currentSearchKeyword) renderList(filterBillsByKeyword(currentSearchKeyword));
     else renderList();
-    updateStats(); updateMonth(); updateStreak(); updateDayStats();
+    updateStats(); updateMonth(); updateStreak(); updateDayStats(); updateTotalRecordDays();
     searchByDate(document.getElementById('searchDate').value);
 }
 function updateStats() {
@@ -988,7 +1035,7 @@ function updateStreak() {
     document.getElementById('streakDay').textContent=streak;
 }
 function searchByDate(d) { if(!d) return; let inSum=0, outSum=0; const list = bills.filter(b=>b.date===d); list.forEach(b=>b.type==='income'?inSum+=b.amount:outSum+=b.amount); document.getElementById('searchResult').innerHTML = `${formatDate(d)} 收入¥${inSum.toFixed(2)} 支出¥${outSum.toFixed(2)} 结余¥${(inSum-outSum).toFixed(2)}`; renderList(list); }
-function updateDayStats() { /* 复用已有函数 */ 
+function updateDayStats() {
     if (bills.length === 0) { document.getElementById('maxDayDate').innerText = '-'; document.getElementById('maxDayExpense').innerText = '¥0.00'; document.getElementById('minDayDate').innerText = '-'; document.getElementById('minDayExpense').innerText = '¥0.00'; return; }
     let dayMap = {}; bills.forEach(b => { if (b.type === 'expense') { if (!dayMap[b.date]) dayMap[b.date] = 0; dayMap[b.date] += b.amount; } });
     let dayList = Object.keys(dayMap).map(date => ({ date, expense: dayMap[date] }));
@@ -1004,8 +1051,8 @@ function openDayRankModal() { let dayMap = {}; bills.forEach(b => { if (b.type =
 function closeDayRankModal() { document.getElementById('dayRankModal').classList.add('hidden'); }
 function fire(){ for(let i=0;i<10;i++){ const f=document.createElement('div'); f.className='firework'; f.style.left=Math.random()*100+'vw'; f.style.top=Math.random()*100+'vh'; document.body.appendChild(f); setTimeout(()=>f.remove(),800); } }
 function initWelcome() { const h = new Date().getHours(); let t = `欢迎你，${userNickname}～`; if(h>=5&&h<10) t=`☀️ 早上好，${userNickname}！`; else if(h<14) t=`☀️ 上午好，${userNickname}！`; else if(h<18) t=`🌤 下午好，${userNickname}！`; else t=`🌙 晚上好，${userNickname}！`; document.getElementById('welcomeText').textContent = t; }
-function bindAll() { document.querySelectorAll('.type-btn').forEach(b=>{ b.onclick=()=>{ document.querySelectorAll('.type-btn').forEach(x=>x.classList.remove('active')); b.classList.add('active'); } }); document.querySelectorAll('.quick-btn').forEach(b=>{ b.onclick=()=>{ document.querySelectorAll('.quick-btn').forEach(x=>x.classList.remove('active')); b.classList.add('active'); document.getElementById('remark').value = b.dataset.name; } }); document.getElementById('addBill').onclick = saveBill; document.getElementById('importBtn').onclick = ()=>document.getElementById('fileInput').click(); document.getElementById('fileInput').onchange = importBill; document.getElementById('exportBtn').onclick = exportBill; document.getElementById('shareBtn').onclick = share; document.getElementById('searchBtn').onclick = ()=>searchByDate(document.getElementById('searchDate').value); document.getElementById('keywordSearch').addEventListener('input', () => {}); }
-async function importBill(e) { const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = async ev=>{ try{ const data = JSON.parse(ev.target.result); if(Array.isArray(data)){ for (const bill of data) { if (bill.image && !bill.imageId) { bill.imageId = 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9); await saveImageToDB(bill.imageId, bill.image); delete bill.image; } } bills = data; localStorage.setItem('bills',JSON.stringify(bills)); if (currentSearchKeyword) renderList(filterBillsByKeyword(currentSearchKeyword)); else renderList(); updateStats(); updateMonth(); updateStreak(); updateDayStats(); alert('导入成功！'); } }catch{ alert('导入失败'); } }; r.readAsText(f); }
+function bindAll() { document.querySelectorAll('.type-btn').forEach(b=>{ b.onclick=()=>{ document.querySelectorAll('.type-btn').forEach(x=>x.classList.remove('active')); b.classList.add('active'); } }); document.querySelectorAll('.quick-btn').forEach(b=>{ b.onclick=()=>{ document.querySelectorAll('.quick-btn').forEach(x=>x.classList.remove('active')); b.classList.add('active'); document.getElementById('remark').value = b.dataset.name; } }); document.getElementById('addBill').onclick = saveBill; document.getElementById('importBtn').onclick = ()=>document.getElementById('fileInput').click(); document.getElementById('fileInput').onchange = importBill; document.getElementById('exportBtn').onclick = exportBill; document.getElementById('shareBtn').onclick = share; document.getElementById('searchBtn').onclick = ()=>searchByDate(document.getElementById('searchDate').value); }
+async function importBill(e) { const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = async ev=>{ try{ const data = JSON.parse(ev.target.result); if(Array.isArray(data)){ for (const bill of data) { if (bill.image && !bill.imageId) { bill.imageId = 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9); await saveImageToDB(bill.imageId, bill.image); delete bill.image; } } bills = data; localStorage.setItem('bills',JSON.stringify(bills)); if (currentSearchKeyword) renderList(filterBillsByKeyword(currentSearchKeyword)); else renderList(); updateStats(); updateMonth(); updateStreak(); updateDayStats(); updateTotalRecordDays(); alert('导入成功！'); } }catch{ alert('导入失败'); } }; r.readAsText(f); }
 async function exportBill() { const exportBills = JSON.parse(JSON.stringify(bills)); for (const bill of exportBills) { if (bill.imageId) bill.image = await getImageFromDB(bill.imageId); } const blob = new Blob([JSON.stringify(exportBills)],{type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = '账单_'+new Date().toISOString().split('T')[0]+'.json'; a.click(); }
 function share() { if(navigator.share) navigator.share({title:"我的小七记账账单",text:window.location.href}); else alert('分享功能需要浏览器支持'); }
 function showDayExpenseOnTop(date){ if(!date) return; let expense=0, income=0; bills.forEach(b=>{ if(b.date===date) b.type==='expense'?expense+=b.amount:income+=b.amount; }); document.getElementById('dayExpenseTip').innerText = `${date} · 支出 ¥${expense.toFixed(2)} · 收入 ¥${income.toFixed(2)}`; }
@@ -1015,6 +1062,7 @@ function initNickname() { document.getElementById('userNickname').textContent = 
 function openNicknameModal() { document.getElementById('nicknameModal').classList.remove('hidden'); }
 function closeNicknameModal() { document.getElementById('nicknameModal').classList.add('hidden'); }
 function saveNickname() { const v = document.getElementById('nicknameInput').value.trim(); if (!v) return alert('请输入昵称'); userNickname = v; localStorage.setItem('userNickname', userNickname); document.getElementById('userNickname').textContent = userNickname; initWelcome(); closeNicknameModal(); }
+function initTip() { document.getElementById('tipContent').textContent = tips[Math.floor(Math.random()*tips.length)]; }
 
 document.addEventListener('DOMContentLoaded', async function(){
     await initDB();
@@ -1023,14 +1071,14 @@ document.addEventListener('DOMContentLoaded', async function(){
     document.getElementById('searchDate').value = today;
     initNickname(); initWelcome(); initTip(); bindAll(); setupSearchListener();
     await renderList();
-    updateStats(); updateMonth(); updateStreak(); updateDayStats(); searchByDate(today); checkSummaryModal();
+    updateStats(); updateMonth(); updateStreak(); updateDayStats(); updateTotalRecordDays(); 
+    searchByDate(today); checkSummaryModal();
     document.getElementById('billList').addEventListener('click', function(e){
         const item = e.target.closest('.bill-item'); if(item && item.dataset.date) showDayExpenseOnTop(item.dataset.date);
         if (e.target.classList.contains('bill-image-thumb')) { const imageId = e.target.dataset.imageid; getImageFromDB(imageId).then(src => { if(src) viewImage(src); else alert('图片已失效'); }); }
     });
     document.getElementById('searchDate').addEventListener('change', function(){ showDayExpenseOnTop(this.value); });
 });
-function initTip() { document.getElementById('tipContent').textContent = tips[Math.floor(Math.random()*tips.length)]; }
 </script>
 </body>
 </html>
