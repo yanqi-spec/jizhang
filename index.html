@@ -3,8 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>小七记账 · 智能搜索</title>
+    <title>小七记账</title>
+    <!-- 引入 Chart.js 轻量图表库 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
+        /* === 原有样式保持不变，新增图表相关样式 === */
         * {
             margin: 0;
             padding: 0;
@@ -445,8 +448,17 @@
             cursor: pointer;
         }
         .func-btn:hover { background: #667eea; color: white; }
-        .list-container { margin: 0 15px; }
-        .list-title { font-size: 16px; margin-bottom: 12px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+        .list-container {
+            margin: 0 15px;
+        }
+        .list-title {
+            font-size: 16px;
+            margin-bottom: 12px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
         .search-input-area {
             background: white;
             margin: 0 15px 15px;
@@ -665,10 +677,97 @@
             font-weight: bold;
             cursor: pointer;
         }
+
+        /* ===== 新增：图表卡片样式 ===== */
+        .chart-card {
+            background: white;
+            margin: 15px;
+            padding: 20px 15px;
+            border-radius: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .chart-header .chart-title {
+            font-weight: bold;
+            font-size: 16px;
+            color: #333;
+        }
+        .chart-date-range {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .chart-date-range input[type="date"] {
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 13px;
+            background: #f9f9f9;
+        }
+        .chart-date-range button {
+            padding: 6px 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .chart-date-range button:hover {
+            opacity: 0.9;
+        }
+        .chart-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 320px;
+            margin: 0 auto;
+        }
+        .chart-wrapper canvas {
+            width: 100% !important;
+            height: auto !important;
+        }
+        .chart-empty-tip {
+            text-align: center;
+            color: #999;
+            padding: 30px 0;
+            font-size: 14px;
+        }
+        /* 图表类型切换标签 */
+        .chart-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .chart-tab {
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            border: 1px solid #ddd;
+            background: #f5f7fa;
+            cursor: pointer;
+            color: #666;
+        }
+        .chart-tab.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        .chart-tab:hover {
+            opacity: 0.8;
+        }
     </style>
 </head>
 <body>
 
+<!-- ===== 原有模态框保持不变 ===== -->
 <div class="modal hidden" id="nicknameModal">
     <div class="modal-content">
         <div class="modal-title">修改昵称</div>
@@ -718,6 +817,7 @@
     <img src="" class="image-viewer-img" id="viewerImage">
 </div>
 
+<!-- ===== 顶部 ===== -->
 <div class="header">
     <div class="nickname-edit" onclick="openNicknameModal()">✏️</div>
     <div class="welcome-text" id="welcomeText"></div>
@@ -733,7 +833,7 @@
     </div>
 </div>
 
-<!-- 连续天数卡片 + 新增已记账总天数 -->
+<!-- 连续天数卡片 -->
 <div class="streak-card">
     <div class="streak-left">
         <div class="streak-title">📅 记账连续天数</div>
@@ -771,6 +871,29 @@
 <div class="func-buttons"><button class="func-btn" id="importBtn">导入</button><button class="func-btn" id="exportBtn">导出</button><button class="func-btn" id="shareBtn">分享</button></div>
 <input type="file" id="fileInput" accept=".json">
 
+<!-- ===== 新增：图表分析卡片 ===== -->
+<div class="chart-card" id="chartCard">
+    <div class="chart-header">
+        <span class="chart-title">📊 支出分类饼图</span>
+        <div class="chart-date-range">
+            <input type="date" id="chartStartDate">
+            <span style="color:#999; font-size:13px;">至</span>
+            <input type="date" id="chartEndDate">
+            <button onclick="updateChart()">生成</button>
+        </div>
+    </div>
+    <!-- 图表类型切换 -->
+    <div class="chart-tabs">
+        <span class="chart-tab active" data-mode="expense" onclick="switchChartMode('expense')">📉 支出</span>
+        <span class="chart-tab" data-mode="income" onclick="switchChartMode('income')">📈 收入</span>
+    </div>
+    <div class="chart-wrapper">
+        <canvas id="pieChart"></canvas>
+    </div>
+    <div id="chartEmptyTip" class="chart-empty-tip hidden">暂无数据，请先添加账单</div>
+</div>
+
+<!-- ===== 账单列表 ===== -->
 <div class="list-container">
     <div class="list-title">📋 最近账单 <span class="search-badge" id="searchBadge" style="display: none;">🔍 筛选模式</span></div>
     <div class="search-input-area">
@@ -782,7 +905,7 @@
 </div>
 
 <script>
-// ========== 核心逻辑 + 已记账总天数 ==========
+// ========== 原有核心逻辑 + 新增图表逻辑 ==========
 let db;
 let bills = JSON.parse(localStorage.getItem('bills')) || [];
 let editIndex = -1;
@@ -791,6 +914,8 @@ let summaryShown = JSON.parse(localStorage.getItem('summaryShown')) || {};
 let currentImage = null;
 let currentImageId = null;
 let currentSearchKeyword = '';   
+let chartInstance = null;
+let currentChartMode = 'expense'; // 'expense' 或 'income'
 
 const tips = ["早餐吃好，一天精神～","少喝一杯奶茶，多存一笔钱","记账让你更懂钱","冲动消费先等24小时","小钱不记，大钱不留","合理规划消费，生活更从容～","今日结余不错，继续保持！","适当奖励自己，消费也要有幸福感～"];
 
@@ -875,7 +1000,6 @@ function filterBillsByKeyword(keyword) {
     });
 }
 
-// 计算已记账总天数（有账单的不同日期数量）
 function updateTotalRecordDays() {
     if (!bills.length) {
         document.getElementById('totalRecordDays').innerText = '0';
@@ -968,6 +1092,8 @@ async function saveBill() {
         updateStats(); updateMonth(); updateStreak(); updateDayStats(); updateTotalRecordDays();
         const searchDateVal = document.getElementById('searchDate').value;
         if(searchDateVal) searchByDate(searchDateVal);
+        // 更新图表
+        updateChart();
         fire(); alert('保存成功！');
     } catch(e) { bills = oldBills; alert('保存失败：' + e.message); }
 }
@@ -1006,6 +1132,7 @@ async function deleteBill(idx) {
     else renderList();
     updateStats(); updateMonth(); updateStreak(); updateDayStats(); updateTotalRecordDays();
     searchByDate(document.getElementById('searchDate').value);
+    updateChart();
 }
 function updateStats() {
     let inAll=0, outAll=0, inToday=0, outToday=0;
@@ -1052,7 +1179,7 @@ function closeDayRankModal() { document.getElementById('dayRankModal').classList
 function fire(){ for(let i=0;i<10;i++){ const f=document.createElement('div'); f.className='firework'; f.style.left=Math.random()*100+'vw'; f.style.top=Math.random()*100+'vh'; document.body.appendChild(f); setTimeout(()=>f.remove(),800); } }
 function initWelcome() { const h = new Date().getHours(); let t = `欢迎你，${userNickname}～`; if(h>=5&&h<10) t=`☀️ 早上好，${userNickname}！`; else if(h<14) t=`☀️ 上午好，${userNickname}！`; else if(h<18) t=`🌤 下午好，${userNickname}！`; else t=`🌙 晚上好，${userNickname}！`; document.getElementById('welcomeText').textContent = t; }
 function bindAll() { document.querySelectorAll('.type-btn').forEach(b=>{ b.onclick=()=>{ document.querySelectorAll('.type-btn').forEach(x=>x.classList.remove('active')); b.classList.add('active'); } }); document.querySelectorAll('.quick-btn').forEach(b=>{ b.onclick=()=>{ document.querySelectorAll('.quick-btn').forEach(x=>x.classList.remove('active')); b.classList.add('active'); document.getElementById('remark').value = b.dataset.name; } }); document.getElementById('addBill').onclick = saveBill; document.getElementById('importBtn').onclick = ()=>document.getElementById('fileInput').click(); document.getElementById('fileInput').onchange = importBill; document.getElementById('exportBtn').onclick = exportBill; document.getElementById('shareBtn').onclick = share; document.getElementById('searchBtn').onclick = ()=>searchByDate(document.getElementById('searchDate').value); }
-async function importBill(e) { const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = async ev=>{ try{ const data = JSON.parse(ev.target.result); if(Array.isArray(data)){ for (const bill of data) { if (bill.image && !bill.imageId) { bill.imageId = 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9); await saveImageToDB(bill.imageId, bill.image); delete bill.image; } } bills = data; localStorage.setItem('bills',JSON.stringify(bills)); if (currentSearchKeyword) renderList(filterBillsByKeyword(currentSearchKeyword)); else renderList(); updateStats(); updateMonth(); updateStreak(); updateDayStats(); updateTotalRecordDays(); alert('导入成功！'); } }catch{ alert('导入失败'); } }; r.readAsText(f); }
+async function importBill(e) { const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = async ev=>{ try{ const data = JSON.parse(ev.target.result); if(Array.isArray(data)){ for (const bill of data) { if (bill.image && !bill.imageId) { bill.imageId = 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9); await saveImageToDB(bill.imageId, bill.image); delete bill.image; } } bills = data; localStorage.setItem('bills',JSON.stringify(bills)); if (currentSearchKeyword) renderList(filterBillsByKeyword(currentSearchKeyword)); else renderList(); updateStats(); updateMonth(); updateStreak(); updateDayStats(); updateTotalRecordDays(); updateChart(); alert('导入成功！'); } }catch{ alert('导入失败'); } }; r.readAsText(f); }
 async function exportBill() { const exportBills = JSON.parse(JSON.stringify(bills)); for (const bill of exportBills) { if (bill.imageId) bill.image = await getImageFromDB(bill.imageId); } const blob = new Blob([JSON.stringify(exportBills)],{type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = '账单_'+new Date().toISOString().split('T')[0]+'.json'; a.click(); }
 function share() { if(navigator.share) navigator.share({title:"我的小七记账账单",text:window.location.href}); else alert('分享功能需要浏览器支持'); }
 function showDayExpenseOnTop(date){ if(!date) return; let expense=0, income=0; bills.forEach(b=>{ if(b.date===date) b.type==='expense'?expense+=b.amount:income+=b.amount; }); document.getElementById('dayExpenseTip').innerText = `${date} · 支出 ¥${expense.toFixed(2)} · 收入 ¥${income.toFixed(2)}`; }
@@ -1064,15 +1191,158 @@ function closeNicknameModal() { document.getElementById('nicknameModal').classLi
 function saveNickname() { const v = document.getElementById('nicknameInput').value.trim(); if (!v) return alert('请输入昵称'); userNickname = v; localStorage.setItem('userNickname', userNickname); document.getElementById('userNickname').textContent = userNickname; initWelcome(); closeNicknameModal(); }
 function initTip() { document.getElementById('tipContent').textContent = tips[Math.floor(Math.random()*tips.length)]; }
 
+// ===== 新增：图表核心函数 =====
+function getChartData(startDate, endDate, mode) {
+    // 筛选日期范围内的账单
+    const filtered = bills.filter(b => {
+        return b.date >= startDate && b.date <= endDate && b.type === mode;
+    });
+    // 按备注（分类）聚合
+    const categoryMap = {};
+    filtered.forEach(b => {
+        const key = b.remark || '未分类';
+        categoryMap[key] = (categoryMap[key] || 0) + b.amount;
+    });
+    // 转成数组并排序（从大到小）
+    const entries = Object.entries(categoryMap);
+    entries.sort((a, b) => b[1] - a[1]);
+    // 如果分类太多，合并"其他"（保留前5项）
+    let result = entries;
+    if (entries.length > 6) {
+        const top = entries.slice(0, 5);
+        const otherSum = entries.slice(5).reduce((sum, item) => sum + item[1], 0);
+        result = top;
+        if (otherSum > 0) {
+            result.push(['其他', otherSum]);
+        }
+    }
+    return {
+        labels: result.map(item => item[0]),
+        data: result.map(item => item[1]),
+        total: result.reduce((sum, item) => sum + item[1], 0)
+    };
+}
+
+function switchChartMode(mode) {
+    currentChartMode = mode;
+    // 切换标签高亮
+    document.querySelectorAll('.chart-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.mode === mode);
+    });
+    // 更新标题
+    const titleEl = document.querySelector('.chart-card .chart-title');
+    if (mode === 'expense') {
+        titleEl.textContent = '📊 支出分类饼图';
+    } else {
+        titleEl.textContent = '📊 收入分类饼图';
+    }
+    updateChart();
+}
+
+function updateChart() {
+    const startDate = document.getElementById('chartStartDate').value;
+    const endDate = document.getElementById('chartEndDate').value;
+    if (!startDate || !endDate) {
+        // 默认：本月1号到今天
+        const now = new Date();
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+        const firstDayStr = firstDay.toISOString().split('T')[0];
+        const todayStr = now.toISOString().split('T')[0];
+        if (!startDate) document.getElementById('chartStartDate').value = firstDayStr;
+        if (!endDate) document.getElementById('chartEndDate').value = todayStr;
+        // 递归调用一次
+        if (!startDate || !endDate) {
+            // 但需要确保值已设置，再调用一次
+            setTimeout(() => updateChart(), 50);
+            return;
+        }
+        return updateChart(); // 重新进入
+    }
+
+    const data = getChartData(startDate, endDate, currentChartMode);
+    const canvas = document.getElementById('pieChart');
+    const ctx = canvas.getContext('2d');
+    const emptyTip = document.getElementById('chartEmptyTip');
+
+    // 销毁旧图表
+    if (chartInstance) {
+        chartInstance.destroy();
+        chartInstance = null;
+    }
+
+    if (data.total === 0 || data.labels.length === 0) {
+        // 无数据时显示提示
+        canvas.style.display = 'none';
+        emptyTip.classList.remove('hidden');
+        return;
+    }
+    canvas.style.display = 'block';
+    emptyTip.classList.add('hidden');
+
+    // 配色（柔和色板）
+    const colors = [
+        '#667eea', '#764ba2', '#f093fb', '#f5576c',
+        '#4facfe', '#43e97b', '#fa709a', '#fee140',
+        '#a18cd1', '#fbc2eb'
+    ];
+
+    chartInstance = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: data.labels,
+            datasets: [{
+                data: data.data,
+                backgroundColor: colors.slice(0, data.labels.length),
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        font: { size: 12 },
+                        boxWidth: 12,
+                        padding: 12
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
+                            return context.label + ': ¥' + context.parsed.toFixed(2) + ' (' + percentage + '%)';
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// ===== 初始化 =====
 document.addEventListener('DOMContentLoaded', async function(){
     await initDB();
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('date').value = today;
     document.getElementById('searchDate').value = today;
+
+    // 设置图表默认日期范围：本月1号 ~ 今天
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    document.getElementById('chartStartDate').value = firstDay.toISOString().split('T')[0];
+    document.getElementById('chartEndDate').value = today;
+
     initNickname(); initWelcome(); initTip(); bindAll(); setupSearchListener();
     await renderList();
     updateStats(); updateMonth(); updateStreak(); updateDayStats(); updateTotalRecordDays(); 
     searchByDate(today); checkSummaryModal();
+    // 初始化图表
+    updateChart();
+
     document.getElementById('billList').addEventListener('click', function(e){
         const item = e.target.closest('.bill-item'); if(item && item.dataset.date) showDayExpenseOnTop(item.dataset.date);
         if (e.target.classList.contains('bill-image-thumb')) { const imageId = e.target.dataset.imageid; getImageFromDB(imageId).then(src => { if(src) viewImage(src); else alert('图片已失效'); }); }
